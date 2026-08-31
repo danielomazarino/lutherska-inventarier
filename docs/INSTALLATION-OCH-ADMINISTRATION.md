@@ -222,8 +222,18 @@ Var öppen med följande under drift:
 - Excel är fortfarande en relativt känslig datakälla vid många samtidiga skrivningar.
 - Personer med redigeringsbehörighet kan fortfarande öppna filen och ändra strukturen manuellt.
 - Appen skickar ännu inga e-postpåminnelser. Försenat syns när appen öppnas.
-- Föremål kan läggas till men ännu inte redigeras eller tas bort i appen.
+- Föremål kan läggas till och redigeras men ännu inte tas bort i appen.
 - GitHub Pages-webbplatsen drivs från Daniels privata konto. Kyrkan äger arbetsboken och appregistreringen, men inte webbadressen.
+
+### Inventarienummer och dubbletter
+
+Inventarienummer följer formatet `AAA-001`: exakt tre stora bokstäver, bindestreck och tre siffror. De fasta svenska prefixen är `MOB`, `BEL`, `LJU` och `KOK`. När en ny kategori skapas väljer administratören en unik trebokstavskod; samma kod ska sedan användas för resten av kategorin.
+
+Appen kontrollerar format, kategoriprefix och dubbletter både mot de data som visas och genom att läsa Inventory-tabellen på nytt omedelbart före en skrivning. Efter en ny rad har lagts till läser appen tabellen igen och tar bort den nya raden om en tidigare rad redan har samma nummer. Den genererade Excel-mallen har dessutom dataverifiering i kolumnen `AssetTag` för manuella ändringar. Befintliga fel visas under **Administration**.
+
+Den aktuella arbetsboksmallen har kolumnen `Prefix` i tabellen `Categories`. Om en äldre mall redan har lagts i OneDrive ska den ersättas med den aktuella tomma mallen innan riktiga inventarier registreras. Om arbetsboken redan innehåller riktiga data måste kolumnen läggas till och fyllas i utan att de befintliga raderna tas bort.
+
+Excel har däremot ingen atomisk unikhetsregel. Om två användare skickar in exakt samma nya inventarienummer samtidigt finns en liten möjlighet att båda hinner passera kontrollen innan raderna skrivs. En absolut garanti i ett system med många samtidiga användare kräver en datakälla med unikhetsvillkor, exempelvis Microsoft Lists med en unik kolumn eller en databas. För den nuvarande mindre användargruppen är kontroll före skrivning tillsammans med integritetsrapporten den praktiska skyddsnivån.
 
 Detta är ett rimligt kostnadsfritt upplägg för en mindre verksamhet. Om användningen växer är nästa rimliga steg att flytta datan till Microsoft Lists, som ofta ingår i samma Microsoft 365-paket. Appens arbetsflöde kan behållas samtidigt som datalagringen blir mindre känslig.
 

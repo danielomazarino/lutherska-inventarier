@@ -3,8 +3,9 @@ import {
   PublicClientApplication,
   type AccountInfo,
 } from '@azure/msal-browser'
+import { assetTagError, normalizeAssetTag, normalizeCategoryPrefix } from './inventoryIntegrity'
 
-export type Option = { id: string; name: string; color?: string }
+export type Option = { id: string; name: string; color?: string; prefix?: string }
 export type Item = {
   id: string
   assetTag: string
@@ -116,7 +117,7 @@ export class M365Workbook {
       this.readTable('Loans'),
     ])
     return {
-      categories: categories.map((row) => ({ id: text(row[0]), name: text(row[1]), color: text(row[2]) || undefined })),
+      categories: categories.map((row) => ({ id: text(row[0]), name: text(row[1]), color: text(row[2]) || undefined, prefix: text(row[3]) || undefined })),
       groups: groups.map((row) => ({ id: text(row[0]), name: text(row[1]) })),
       locations: locations.map((row) => ({ id: text(row[0]), name: text(row[1]) })),
       items: items.map((row) => ({
@@ -143,11 +144,23 @@ export class M365Workbook {
     }
   }
 
-  addItem(item: Item) {
-    return this.addRow('Inventory', [item.id, item.assetTag, item.name, item.categoryId, item.primaryGroupId, item.secondaryGroupIds.join(';'), item.locationId, item.quantity, item.notes])
+  async addItem(item: Item) {
+    await this.assertAssetTagAvailable(item)
+    await this.addRow('Inventory', [item.id, item.assetTag, item.name, item.categoryId, item.primaryGroupId, item.secondaryGroupIds.join(';'), item.locationId, item.quantity, item.notes])
+    const rows = await this.readTable('Inventory')
+    const matchingIds = rows.filter((row) => normalizeAssetTag(text(row[1])) === item.assetTag).map((row) => text(row[0]))
+    if (matchingIds.length > 1) {
+      const currentIndex = this.rowIndexes.Inventory.get(item.id)
+      const earliestIndex = Math.min(...matchingIds.map((id) => this.rowIndexes.Inventory.get(id) ?? Number.MAX_SAFE_INTEGER))
+      if (currentIndex !== undefined && currentIndex > earliestIndex) {
+        await this.deleteRow('Inventory', item.id)
+        throw new Error(`Inventarienumret ${item.assetTag} hann registreras av en annan användare. Din dubblettrad sparades inte.`)
+      }
+    }
   }
 
-  updateItem(item: Item) {
+  async updateItem(item: Item) {
+    await this.assertAssetTagAvailable(item)
     return this.updateRow('Inventory', item.id, [item.id, item.assetTag, item.name, item.categoryId, item.primaryGroupId, item.secondaryGroupIds.join(';'), item.locationId, item.quantity, item.notes])
   }
 
@@ -163,18 +176,39 @@ export class M365Workbook {
     return this.updateLoan(loan)
   }
 
-  addOption(kind: 'categories' | 'groups' | 'locations', option: Option) {
+  async addOption(kind: 'categories' | 'groups' | 'locations', option: Option) {
     const table = this.optionTable(kind)
-    return this.addRow(table, table === 'Categories' ? [option.id, option.name, option.color ?? ''] : [option.id, option.name])
+    if (table === 'Categories') await this.assertCategoryPrefixAvailable(option)
+    return this.addRow(table, table === 'Categories' ? [option.id, option.name, option.color ?? '', option.prefix ?? ''] : [option.id, option.name])
   }
 
-  renameOption(kind: 'categories' | 'groups' | 'locations', option: Option) {
+  async renameOption(kind: 'categories' | 'groups' | 'locations', option: Option) {
     const table = this.optionTable(kind)
-    return this.updateRow(table, option.id, table === 'Categories' ? [option.id, option.name, option.color ?? ''] : [option.id, option.name])
+    if (table === 'Categories') await this.assertCategoryPrefixAvailable(option)
+    return this.updateRow(table, option.id, table === 'Categories' ? [option.id, option.name, option.color ?? '', option.prefix ?? ''] : [option.id, option.name])
   }
 
   private optionTable(kind: 'categories' | 'groups' | 'locations'): TableName {
     return kind === 'categories' ? 'Categories' : kind === 'groups' ? 'Groups' : 'Locations'
+  }
+
+  private async assertAssetTagAvailable(item: Item) {
+    const rows = await this.readTable('Inventory')
+    const categoryRows = await this.readTable('Categories')
+    const items = rows.map((row) => ({ id: text(row[0]), assetTag: text(row[1]), categoryId: text(row[3]) }))
+    const categories = categoryRows.map((row) => ({ id: text(row[0]), name: text(row[1]), prefix: text(row[3]) || undefined }))
+    const error = assetTagError(item.assetTag, items, categories, item.id, item.categoryId)
+    if (error) throw new Error(error)
+    item.assetTag = normalizeAssetTag(item.assetTag)
+  }
+
+  private async assertCategoryPrefixAvailable(option: Option) {
+    const prefix = normalizeCategoryPrefix(option.prefix ?? '')
+    if (!/^[A-Z]{3}$/.test(prefix)) throw new Error('Prefixet ska bestå av exakt tre bokstäver.')
+    const rows = await this.readTable('Categories')
+    const duplicate = rows.find((row) => text(row[0]) !== option.id && normalizeCategoryPrefix(text(row[3])) === prefix)
+    if (duplicate) throw new Error(`Prefixet ${prefix} används redan av kategorin ${text(duplicate[1])}.`)
+    option.prefix = prefix
   }
 
   private async createSession() {
@@ -217,6 +251,13 @@ export class M365Workbook {
       method: 'PATCH',
       body: JSON.stringify({ values: [values] }),
     })
+  }
+
+  private async deleteRow(name: TableName, id: string) {
+    const index = this.rowIndexes[name].get(id)
+    if (index === undefined) return
+    await this.request(`/workbook/tables/${name}/rows/itemAt(index=${index})`, { method: 'DELETE' })
+    await this.readTable(name)
   }
 
   private async token() {

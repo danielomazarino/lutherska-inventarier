@@ -29,12 +29,12 @@ const addTableSheet = (name, columns, rows, widths) => {
   return sheet
 }
 
-addTableSheet('Categories', ['Id', 'Name', 'Color'], [
-  ['cat-furniture', 'Möbler', '#6f8657'],
-  ['cat-lighting', 'Belysning', '#f59b45'],
-  ['cat-sound', 'Ljudutrustning', '#3688df'],
-  ['cat-kitchen', 'Kök & fika', '#c73f3b'],
-], [22, 28, 16])
+addTableSheet('Categories', ['Id', 'Name', 'Color', 'Prefix'], [
+  ['cat-furniture', 'Möbler', '#6f8657', 'MOB'],
+  ['cat-lighting', 'Belysning', '#f59b45', 'BEL'],
+  ['cat-sound', 'Ljudutrustning', '#3688df', 'LJU'],
+  ['cat-kitchen', 'Kök & fika', '#c73f3b', 'KOK'],
+], [22, 28, 16, 14])
 
 addTableSheet('Groups', ['Id', 'Name'], [
   ['grp-board-mission', 'Styrelsen Lutherska missionsföreningen'],
@@ -69,7 +69,16 @@ addTableSheet('Locations', ['Id', 'Name'], [
   ['loc-basement', 'Källarförrådet'],
 ], [22, 32])
 
-addTableSheet('Inventory', ['Id', 'AssetTag', 'Name', 'CategoryId', 'PrimaryGroupId', 'SecondaryGroupIds', 'LocationId', 'Quantity', 'Notes'], [], [30, 16, 36, 22, 24, 30, 22, 12, 44])
+const inventorySheet = addTableSheet('Inventory', ['Id', 'AssetTag', 'Name', 'CategoryId', 'PrimaryGroupId', 'SecondaryGroupIds', 'LocationId', 'Quantity', 'Notes'], [], [30, 16, 36, 22, 24, 30, 22, 12, 44])
+inventorySheet.dataValidations.add('B2:B5000', {
+  type: 'custom',
+  allowBlank: true,
+  formulae: ['=OR(COUNTA(A2:I2)=0,AND(LEN(B2)=7,MID(B2,4,1)="-",CODE(MID(B2,1,1))>=65,CODE(MID(B2,1,1))<=90,CODE(MID(B2,2,1))>=65,CODE(MID(B2,2,1))<=90,CODE(MID(B2,3,1))>=65,CODE(MID(B2,3,1))<=90,ISNUMBER(--RIGHT(B2,3)),COUNTIF($B:$B,B2)=1,D2<>"",LEFT(B2,3)=IFERROR(VLOOKUP(D2,Categories,4,FALSE),"")))'],
+  showErrorMessage: true,
+  errorStyle: 'error',
+  errorTitle: 'Ogiltigt inventarienummer',
+  error: 'Använd kategorins trebokstavskod, bindestreck och tre siffror. Numret måste vara unikt, till exempel MOB-014.',
+})
 addTableSheet('Loans', ['Id', 'ItemId', 'Borrower', 'BorrowerGroupId', 'RecordedBy', 'LentAt', 'DueAt', 'ReturnedAt'], [], [30, 30, 28, 24, 28, 14, 14, 14])
 
 const outputDirectory = path.resolve('workbook')

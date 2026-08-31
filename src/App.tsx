@@ -28,6 +28,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import './App.css'
 import readme from '../README.md?raw'
+import { assetTagError, BUILT_IN_CATEGORY_PREFIXES, categoryPrefixFor, inventoryIntegrityIssues, normalizeAssetTag, normalizeCategoryPrefix } from './inventoryIntegrity'
 import {
   M365Workbook,
   type InventoryData,
@@ -55,10 +56,10 @@ const isoDate = (daysFromToday = 0) => {
 
 const seedData: InventoryData = {
   categories: [
-    { id: 'cat-furniture', name: 'Möbler', color: '#6f8657' },
-    { id: 'cat-lighting', name: 'Belysning', color: '#f59b45' },
-    { id: 'cat-sound', name: 'Ljudutrustning', color: '#3688df' },
-    { id: 'cat-kitchen', name: 'Kök & fika', color: '#c73f3b' },
+    { id: 'cat-furniture', name: 'Möbler', color: '#6f8657', prefix: 'MOB' },
+    { id: 'cat-lighting', name: 'Belysning', color: '#f59b45', prefix: 'BEL' },
+    { id: 'cat-sound', name: 'Ljudutrustning', color: '#3688df', prefix: 'LJU' },
+    { id: 'cat-kitchen', name: 'Kök & fika', color: '#c73f3b', prefix: 'KOK' },
   ],
   groups: [
     { id: 'grp-board-mission', name: 'Styrelsen Lutherska missionsföreningen' },
@@ -92,10 +93,10 @@ const seedData: InventoryData = {
     { id: 'loc-basement', name: 'Källarförrådet' },
   ],
   items: [
-    { id: 'item-1', assetTag: 'SND-001', name: 'Trådlösa mikrofoner', categoryId: 'cat-sound', primaryGroupId: 'grp-sound', secondaryGroupIds: ['grp-lux'], locationId: 'loc-stage', quantity: 2, notes: 'Två handmikrofoner och mottagare.' },
-    { id: 'item-2', assetTag: 'FUR-014', name: 'Fällbord', categoryId: 'cat-furniture', primaryGroupId: 'grp-premises-change', secondaryGroupIds: ['grp-household'], locationId: 'loc-basement', quantity: 8, notes: '' },
-    { id: 'item-3', assetTag: 'KIT-008', name: 'Stor kaffebryggare', categoryId: 'cat-kitchen', primaryGroupId: 'grp-household', secondaryGroupIds: ['grp-kitchen-cleaning-purchases'], locationId: 'loc-kitchen', quantity: 1, notes: 'Rymmer 10 liter.' },
-    { id: 'item-4', assetTag: 'LGT-004', name: 'Portabla LED-lampor', categoryId: 'cat-lighting', primaryGroupId: 'grp-service-visuals', secondaryGroupIds: ['grp-lux'], locationId: 'loc-stage', quantity: 6, notes: 'Förvaras i vadderad transportväska.' },
+    { id: 'item-1', assetTag: 'LJU-001', name: 'Trådlösa mikrofoner', categoryId: 'cat-sound', primaryGroupId: 'grp-sound', secondaryGroupIds: ['grp-lux'], locationId: 'loc-stage', quantity: 2, notes: 'Två handmikrofoner och mottagare.' },
+    { id: 'item-2', assetTag: 'MOB-014', name: 'Fällbord', categoryId: 'cat-furniture', primaryGroupId: 'grp-premises-change', secondaryGroupIds: ['grp-household'], locationId: 'loc-basement', quantity: 8, notes: '' },
+    { id: 'item-3', assetTag: 'KOK-008', name: 'Stor kaffebryggare', categoryId: 'cat-kitchen', primaryGroupId: 'grp-household', secondaryGroupIds: ['grp-kitchen-cleaning-purchases'], locationId: 'loc-kitchen', quantity: 1, notes: 'Rymmer 10 liter.' },
+    { id: 'item-4', assetTag: 'BEL-004', name: 'Portabla LED-lampor', categoryId: 'cat-lighting', primaryGroupId: 'grp-service-visuals', secondaryGroupIds: ['grp-lux'], locationId: 'loc-stage', quantity: 6, notes: 'Förvaras i vadderad transportväska.' },
   ],
   loans: [
     { id: 'loan-1', itemId: 'item-4', borrower: 'Anna Lind', borrowerGroupId: 'grp-lux', recordedBy: 'Erik Nilsson', lentAt: isoDate(-6), dueAt: isoDate(-1) },
@@ -116,6 +117,7 @@ function App() {
   const [modal, setModal] = useState<'item' | 'edit-item' | 'loan' | 'edit-loan' | null>(null)
   const [selectedItemId, setSelectedItemId] = useState('')
   const [selectedLoanId, setSelectedLoanId] = useState('')
+  const [formError, setFormError] = useState('')
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [m365Config, setM365Config] = useState<M365Config>(() => {
     const stored = localStorage.getItem(M365_CONFIG_KEY)
@@ -195,9 +197,9 @@ function App() {
   }, [categoryFilter, data.categories, data.groups, data.items, search])
 
   const optionName = (options: Option[], id: string) => options.find((option) => option.id === id)?.name ?? 'Ej angivet'
-  const openItem = (itemId = '') => { setSelectedItemId(itemId); setModal(itemId ? 'edit-item' : 'item') }
-  const openLoan = (itemId = '') => { setSelectedItemId(itemId); setModal('loan') }
-  const openLoanDetails = (loanId: string) => { setSelectedLoanId(loanId); setModal('edit-loan') }
+  const openItem = (itemId = '') => { setFormError(''); setSelectedItemId(itemId); setModal(itemId ? 'edit-item' : 'item') }
+  const openLoan = (itemId = '') => { setFormError(''); setSelectedItemId(itemId); setModal('loan') }
+  const openLoanDetails = (loanId: string) => { setFormError(''); setSelectedLoanId(loanId); setModal('edit-loan') }
 
   const saveRemote = async (operation: (client: M365Workbook) => Promise<unknown>) => {
     if (!workbook) return true
@@ -208,8 +210,16 @@ function App() {
       setSyncStatus('synced')
       return true
     } catch (error) {
-      setSyncError(error instanceof Error ? error.message : 'Excel could not be updated.')
-      setSyncStatus('error')
+      const message = error instanceof Error ? error.message : 'Excel could not be updated.'
+      const validationConflict = /^(Inventarienumret|Kategorin|Prefixet)/.test(message)
+      if (validationConflict) {
+        setFormError(message)
+        setSyncError('')
+        setSyncStatus('synced')
+      } else {
+        setSyncError(message)
+        setSyncStatus('error')
+      }
       return false
     }
   }
@@ -217,9 +227,13 @@ function App() {
   const addItem = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
+    const assetTag = normalizeAssetTag(String(form.get('assetTag')))
+    const categoryId = String(form.get('categoryId'))
+    const error = assetTagError(assetTag, data.items, data.categories, undefined, categoryId)
+    if (error) { setFormError(error); return }
     const item: Item = {
-      id: newId('item'), assetTag: String(form.get('assetTag')), name: String(form.get('name')),
-      categoryId: String(form.get('categoryId')), primaryGroupId: String(form.get('primaryGroupId')),
+      id: newId('item'), assetTag, name: String(form.get('name')),
+      categoryId, primaryGroupId: String(form.get('primaryGroupId')),
       secondaryGroupIds: form.getAll('secondaryGroupIds').map(String), locationId: String(form.get('locationId')),
       quantity: Number(form.get('quantity')), notes: String(form.get('notes')),
     }
@@ -234,9 +248,13 @@ function App() {
     const currentItem = data.items.find((item) => item.id === selectedItemId)
     if (!currentItem) return
     const form = new FormData(event.currentTarget)
+    const assetTag = normalizeAssetTag(String(form.get('assetTag')))
+    const categoryId = String(form.get('categoryId'))
+    const error = assetTagError(assetTag, data.items, data.categories, currentItem.id, categoryId)
+    if (error) { setFormError(error); return }
     const item: Item = {
-      ...currentItem, assetTag: String(form.get('assetTag')), name: String(form.get('name')),
-      categoryId: String(form.get('categoryId')), primaryGroupId: String(form.get('primaryGroupId')),
+      ...currentItem, assetTag, name: String(form.get('name')),
+      categoryId, primaryGroupId: String(form.get('primaryGroupId')),
       secondaryGroupIds: form.getAll('secondaryGroupIds').map(String), locationId: String(form.get('locationId')),
       quantity: Number(form.get('quantity')), notes: String(form.get('notes')),
     }
@@ -285,17 +303,18 @@ function App() {
     }
   }
 
-  const addOption = async (kind: 'categories' | 'groups' | 'locations', name: string) => {
+  const addOption = async (kind: 'categories' | 'groups' | 'locations', name: string, prefix?: string) => {
     if (!name.trim()) return
-    const option = { id: newId(kind.slice(0, 3)), name: name.trim(), ...(kind === 'categories' && { color: palette[data.categories.length % palette.length] }) }
+    const option = { id: newId(kind.slice(0, 3)), name: name.trim(), ...(kind === 'categories' && { color: palette[data.categories.length % palette.length], prefix: normalizeCategoryPrefix(prefix ?? '') }) }
     if (await saveRemote((client) => client.addOption(kind, option))) {
       setData((current) => ({ ...current, [kind]: [...current[kind], option] }))
     }
   }
-  const renameOption = async (kind: 'categories' | 'groups' | 'locations', id: string, name: string) => {
+  const renameOption = async (kind: 'categories' | 'groups' | 'locations', id: string, name: string, prefix?: string) => {
     const currentOption = data[kind].find((option) => option.id === id)
-    if (!currentOption || currentOption.name === name || !name.trim()) return
-    const renamed = { ...currentOption, name: name.trim() }
+    if (!currentOption || !name.trim()) return
+    const renamed = { ...currentOption, name: name.trim(), ...(kind === 'categories' && { prefix: normalizeCategoryPrefix(prefix ?? currentOption.prefix ?? '') }) }
+    if (currentOption.name === renamed.name && currentOption.prefix === renamed.prefix) return
     if (await saveRemote((client) => client.renameOption(kind, renamed))) {
       setData((current) => ({ ...current, [kind]: current[kind].map((option) => option.id === id ? renamed : option) }))
     }
@@ -339,7 +358,7 @@ function App() {
           {view === 'documentation' && <Documentation />}
         </div>
       </main>
-      {(modal === 'item' || modal === 'edit-item') && <ItemModal data={data} item={modal === 'edit-item' ? data.items.find((entry) => entry.id === selectedItemId) : undefined} onClose={() => setModal(null)} onSubmit={modal === 'edit-item' ? updateItem : addItem} />}
+      {(modal === 'item' || modal === 'edit-item') && <ItemModal data={data} item={modal === 'edit-item' ? data.items.find((entry) => entry.id === selectedItemId) : undefined} error={formError} onErrorClear={() => setFormError('')} onClose={() => setModal(null)} onSubmit={modal === 'edit-item' ? updateItem : addItem} />}
       {modal === 'loan' && <LoanModal data={data} availableItems={data.items.filter((item) => !loanedItemIds.has(item.id))} selectedItemId={selectedItemId} onClose={() => setModal(null)} onSubmit={addLoan} />}
       {modal === 'edit-loan' && <LoanModal data={data} availableItems={data.items.filter((item) => Boolean(selectedLoan?.returnedAt) || item.id === selectedLoan?.itemId || !loanedItemIds.has(item.id))} loan={selectedLoan} onClose={() => setModal(null)} onSubmit={updateLoan} />}
     </div>
@@ -393,7 +412,7 @@ function Metric({ icon: Icon, label, value, detail, tone }: { icon: typeof Boxes
 
 function Inventory({ data, items, search, categoryFilter, loanedItemIds, optionName, onSearch, onCategoryFilter, onEdit, onLoan }: SharedProps & { items: Item[]; search: string; categoryFilter: string; loanedItemIds: Set<string>; onSearch: (value: string) => void; onCategoryFilter: (value: string) => void; onEdit: (itemId: string) => void; onLoan: (itemId: string) => void }) {
   return <section className="panel table-panel">
-    <div className="filters"><label className="search-box"><Search size={18} /><input aria-label="Sök i inventariet" placeholder="Sök namn, märkning eller grupp" value={search} onChange={(event) => onSearch(event.target.value)} /></label><label className="select-box"><Tag size={17} /><select aria-label="Filtrera kategori" value={categoryFilter} onChange={(event) => onCategoryFilter(event.target.value)}><option value="all">Alla kategorier</option>{data.categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</select><ChevronDown size={16} /></label><span className="result-count">{items.length} föremål</span></div>
+    <div className="filters"><label className="search-box"><Search size={18} /><input aria-label="Sök i inventariet" placeholder="Sök namn, inventarienummer eller grupp" value={search} onChange={(event) => onSearch(event.target.value)} /></label><label className="select-box"><Tag size={17} /><select aria-label="Filtrera kategori" value={categoryFilter} onChange={(event) => onCategoryFilter(event.target.value)}><option value="all">Alla kategorier</option>{data.categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</select><ChevronDown size={16} /></label><span className="result-count">{items.length} föremål</span></div>
     <div className="table-wrap"><table><thead><tr><th>Föremål</th><th>Kategori</th><th>Ansvarig</th><th>Ordinarie plats</th><th>Antal</th><th>Status</th><th><span className="sr-only">Åtgärder</span></th></tr></thead><tbody>{items.map((item) => {
       const loaned = loanedItemIds.has(item.id)
       return <tr className="inventory-row" tabIndex={0} aria-label={`Visa och redigera ${item.name}`} key={item.id} onClick={() => onEdit(item.id)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onEdit(item.id) } }}><td><div className="item-cell"><div className="item-symbol"><Boxes size={19} /></div><div><strong>{item.name}</strong><span>{item.assetTag}</span></div></div></td><td><span className="category-label"><i style={{ background: data.categories.find((category) => category.id === item.categoryId)?.color }} />{optionName(data.categories, item.categoryId)}</span></td><td><strong className="table-strong">{optionName(data.groups, item.primaryGroupId)}</strong>{item.secondaryGroupIds.length > 0 && <small>+ {item.secondaryGroupIds.length} sekundär</small>}</td><td><span className="with-icon"><MapPin size={15} />{optionName(data.locations, item.locationId)}</span></td><td>{item.quantity}</td><td><span className={`status ${loaned ? 'status-loan' : 'status-home'}`}>{loaned ? 'Utlånad' : 'På plats'}</span></td><td><button className="icon-text-button" disabled={loaned} onClick={(event) => { event.stopPropagation(); onLoan(item.id) }}><Handshake size={16} /> Låna ut</button></td></tr>
@@ -412,11 +431,16 @@ function Loans({ data, optionName, today, onEdit, onReturn }: SharedProps & { to
 
 function Administration({ data, onAdd, onRename }: {
   data: InventoryData
-  onAdd: (kind: 'categories' | 'groups' | 'locations', name: string) => void
-  onRename: (kind: 'categories' | 'groups' | 'locations', id: string, name: string) => void
+  onAdd: (kind: 'categories' | 'groups' | 'locations', name: string, prefix?: string) => void
+  onRename: (kind: 'categories' | 'groups' | 'locations', id: string, name: string, prefix?: string) => void
 }) {
+  const integrityIssues = inventoryIntegrityIssues(data.items, data.categories)
   return <div className="administration-page">
     <div className="page-intro"><span className="section-kicker">Registervård</span><h2>Kategorier, grupper och platser</h2><p>Hantera de gemensamma val som används när föremål och lån registreras.</p></div>
+    <section className={`panel integrity-panel ${integrityIssues.length ? 'has-issues' : ''}`}>
+      <div className="integrity-copy"><CircleAlert size={22} /><div><span className="section-kicker">Inventarienummer</span><h2>{integrityIssues.length ? `${integrityIssues.length} problem behöver rättas` : 'Kontrollen är godkänd'}</h2><p>Använd tre svenska kategoribokstäver och tre siffror: <strong>MOB-001</strong>, <strong>BEL-001</strong>, <strong>LJU-001</strong> eller <strong>KOK-001</strong>. För en ny kategori väljs en unik, lättbegriplig trebokstavskod när kategorin skapas.</p></div></div>
+      {integrityIssues.length > 0 && <ul>{integrityIssues.map((issue) => <li key={issue}>{issue}</li>)}</ul>}
+    </section>
     <div className="setup-grid"><SetupList icon={Tag} title="Kategorier" description="Olika typer av föremål" kind="categories" options={data.categories} onAdd={onAdd} onRename={onRename} /><SetupList icon={Users} title="Verksamhetsgrupper" description="Primärt och sekundärt ansvar" kind="groups" options={data.groups} onAdd={onAdd} onRename={onRename} /><SetupList icon={MapPin} title="Platser" description="Fasta placeringar och förråd" kind="locations" options={data.locations} onAdd={onAdd} onRename={onRename} /></div>
   </div>
 }
@@ -465,17 +489,51 @@ function Setup({ m365Config, syncStatus, syncError, connectedUser, onConnect, on
   </div>
 }
 
-function SetupList({ icon: Icon, title, description, kind, options, onAdd, onRename }: { icon: typeof Tag; title: string; description: string; kind: 'categories' | 'groups' | 'locations'; options: Option[]; onAdd: (kind: 'categories' | 'groups' | 'locations', name: string) => void; onRename: (kind: 'categories' | 'groups' | 'locations', id: string, name: string) => void }) {
+function SetupList({ icon: Icon, title, description, kind, options, onAdd, onRename }: { icon: typeof Tag; title: string; description: string; kind: 'categories' | 'groups' | 'locations'; options: Option[]; onAdd: (kind: 'categories' | 'groups' | 'locations', name: string, prefix?: string) => void; onRename: (kind: 'categories' | 'groups' | 'locations', id: string, name: string, prefix?: string) => void }) {
   const [name, setName] = useState('')
-  return <section className="panel setup-panel"><div className="setup-title"><div className="metric-icon green"><Icon size={20} /></div><div><h2>{title}</h2><p>{description}</p></div></div><div className="editable-list">{options.map((option) => <label key={`${option.id}-${option.name}`}>{option.color && <i style={{ background: option.color }} />}<input aria-label={`Rename ${option.name}`} defaultValue={option.name} onBlur={(event) => onRename(kind, option.id, event.target.value)} /></label>)}</div><form className="quick-add" onSubmit={(event) => { event.preventDefault(); onAdd(kind, name); setName('') }}><input aria-label={`New ${title.toLowerCase()}`} placeholder={`Add ${title.toLowerCase()}`} value={name} onChange={(event) => setName(event.target.value)} /><button className="icon-button" aria-label={`Add ${title.toLowerCase()}`}><Plus size={18} /></button></form></section>
+  const [prefix, setPrefix] = useState('')
+  const [error, setError] = useState('')
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const normalizedPrefix = normalizeCategoryPrefix(prefix)
+    if (kind === 'categories') {
+      if (!/^[A-Z]{3}$/.test(normalizedPrefix)) { setError('Ange en kod med exakt tre bokstäver.'); return }
+      if (options.some((option) => categoryPrefixFor(option.id, options) === normalizedPrefix)) { setError(`Koden ${normalizedPrefix} används redan.`); return }
+    }
+    onAdd(kind, name, normalizedPrefix)
+    setName('')
+    setPrefix('')
+    setError('')
+  }
+  return <section className="panel setup-panel"><div className="setup-title"><div className="metric-icon green"><Icon size={20} /></div><div><h2>{title}</h2><p>{description}</p></div></div><div className="editable-list">{options.map((option) => <SetupOptionRow key={`${option.id}-${option.name}`} kind={kind} option={option} options={options} onRename={onRename} />)}</div><form className="quick-add" onSubmit={submit}><input aria-label={`New ${title.toLowerCase()}`} required placeholder={`Lägg till ${title.toLowerCase()}`} value={name} onChange={(event) => setName(event.target.value)} />{kind === 'categories' && <input className="prefix-input" aria-label="Kod för ny kategori" required pattern="[A-Za-z]{3}" maxLength={3} placeholder="KOD" value={prefix} onChange={(event) => { setPrefix(event.target.value.toUpperCase()); setError('') }} />}<button className="icon-button" aria-label={`Add ${title.toLowerCase()}`}><Plus size={18} /></button>{error && <small className="quick-add-error">{error}</small>}</form></section>
+}
+
+function SetupOptionRow({ kind, option, options, onRename }: { kind: 'categories' | 'groups' | 'locations'; option: Option; options: Option[]; onRename: (kind: 'categories' | 'groups' | 'locations', id: string, name: string, prefix?: string) => void }) {
+  const [name, setName] = useState(option.name)
+  const [prefix, setPrefix] = useState(categoryPrefixFor(option.id, options))
+  const [error, setError] = useState('')
+  const save = () => {
+    if (kind === 'categories') {
+      const normalizedPrefix = normalizeCategoryPrefix(prefix)
+      if (!/^[A-Z]{3}$/.test(normalizedPrefix)) { setError('Koden ska ha tre bokstäver.'); return }
+      if (options.some((candidate) => candidate.id !== option.id && categoryPrefixFor(candidate.id, options) === normalizedPrefix)) { setError(`${normalizedPrefix} används redan.`); return }
+      setPrefix(normalizedPrefix)
+      setError('')
+      onRename(kind, option.id, name, normalizedPrefix)
+      return
+    }
+    onRename(kind, option.id, name)
+  }
+  const fixedPrefix = Boolean(BUILT_IN_CATEGORY_PREFIXES[option.id])
+  return <div className="editable-option-row">{option.color && <i style={{ background: option.color }} />}<input aria-label={`Rename ${option.name}`} value={name} onChange={(event) => setName(event.target.value)} onBlur={save} />{kind === 'categories' && <input className="prefix-input" aria-label={`Kod för ${option.name}`} pattern="[A-Za-z]{3}" maxLength={3} value={prefix} readOnly={fixedPrefix} title={fixedPrefix ? 'Fast kategorikod' : 'Trebokstavskod'} onChange={(event) => { setPrefix(event.target.value.toUpperCase()); setError('') }} onBlur={save} />}{error && <small>{error}</small>}</div>
 }
 
 function Modal({ title, subtitle, onClose, children }: { title: string; subtitle: string; onClose: () => void; children: React.ReactNode }) {
   return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><section className="modal" role="dialog" aria-modal="true" aria-label={title}><div className="modal-header"><div><h2>{title}</h2><p>{subtitle}</p></div><button className="icon-button" aria-label="Close" onClick={onClose}><X size={19} /></button></div>{children}</section></div>
 }
 
-function ItemModal({ data, item, onClose, onSubmit }: { data: InventoryData; item?: Item; onClose: () => void; onSubmit: (event: FormEvent<HTMLFormElement>) => void }) {
-  return <Modal title={item ? 'Visa och redigera föremål' : 'Lägg till föremål'} subtitle={item ? 'Kontrollera eller ändra föremålets uppgifter.' : 'Registrera var föremålet hör hemma och vem som ansvarar.'} onClose={onClose}><form className="form-grid" onSubmit={onSubmit}><label className="full">Namn<input name="name" required autoFocus defaultValue={item?.name} placeholder="t.ex. Portabel projektor" /></label><label>Märkning<input name="assetTag" required defaultValue={item?.assetTag} placeholder="t.ex. AV-012" /></label><label>Antal<input name="quantity" required type="number" min="1" defaultValue={item?.quantity ?? 1} /></label><label>Kategori<select name="categoryId" required defaultValue={item?.categoryId}>{data.categories.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label><label>Ansvarig grupp<select name="primaryGroupId" required defaultValue={item?.primaryGroupId}>{data.groups.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label><label className="full">Sekundära grupper<select name="secondaryGroupIds" multiple size={Math.min(data.groups.length, 4)} defaultValue={item?.secondaryGroupIds}>{data.groups.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select><small>Håll Ctrl för att välja flera.</small></label><label className="full">Ordinarie plats<select name="locationId" required defaultValue={item?.locationId}>{data.locations.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label><label className="full">Anteckningar<textarea name="notes" rows={3} defaultValue={item?.notes} placeholder="Skick, tillbehör eller andra användbara uppgifter" /></label><div className="form-actions full"><button type="button" className="button secondary" onClick={onClose}>Avbryt</button><button className="button primary">{item ? <Check size={17} /> : <PackagePlus size={17} />} {item ? 'Spara ändringar' : 'Lägg till föremål'}</button></div></form></Modal>
+function ItemModal({ data, item, error, onErrorClear, onClose, onSubmit }: { data: InventoryData; item?: Item; error: string; onErrorClear: () => void; onClose: () => void; onSubmit: (event: FormEvent<HTMLFormElement>) => void }) {
+  return <Modal title={item ? 'Visa och redigera föremål' : 'Lägg till föremål'} subtitle={item ? 'Kontrollera eller ändra föremålets uppgifter.' : 'Registrera var föremålet hör hemma och vem som ansvarar.'} onClose={onClose}><form className="form-grid" onSubmit={onSubmit}><label className="full">Namn<input name="name" required autoFocus defaultValue={item?.name} placeholder="t.ex. Portabel projektor" /></label><label>Inventarienummer<input name="assetTag" required pattern="[A-Za-z]{3}-[0-9]{3}" maxLength={7} defaultValue={item?.assetTag} placeholder="t.ex. MOB-014" onInput={(event) => { event.currentTarget.value = event.currentTarget.value.toUpperCase(); onErrorClear() }} /><small>Tre bokstäver och tre siffror.</small></label><label>Antal<input name="quantity" required type="number" min="1" defaultValue={item?.quantity ?? 1} /></label><label>Kategori<select name="categoryId" required defaultValue={item?.categoryId}>{data.categories.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label><label>Ansvarig grupp<select name="primaryGroupId" required defaultValue={item?.primaryGroupId}>{data.groups.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label><label className="full">Sekundära grupper<select name="secondaryGroupIds" multiple size={Math.min(data.groups.length, 4)} defaultValue={item?.secondaryGroupIds}>{data.groups.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select><small>Håll Ctrl för att välja flera.</small></label><label className="full">Ordinarie plats<select name="locationId" required defaultValue={item?.locationId}>{data.locations.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label><label className="full">Anteckningar<textarea name="notes" rows={3} defaultValue={item?.notes} placeholder="Skick, tillbehör eller andra användbara uppgifter" /></label>{error && <p className="form-error full"><CircleAlert size={16} /> {error}</p>}<div className="form-actions full"><button type="button" className="button secondary" onClick={onClose}>Avbryt</button><button className="button primary">{item ? <Check size={17} /> : <PackagePlus size={17} />} {item ? 'Spara ändringar' : 'Lägg till föremål'}</button></div></form></Modal>
 }
 
 function LoanModal({ data, availableItems, selectedItemId = '', loan, onClose, onSubmit }: { data: InventoryData; availableItems: Item[]; selectedItemId?: string; loan?: Loan; onClose: () => void; onSubmit: (event: FormEvent<HTMLFormElement>) => void }) {

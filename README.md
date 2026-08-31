@@ -11,6 +11,7 @@ Lutherska Inventarier är kyrkans gemensamma register för inventarier och utlå
 - Registrera lån med låntagare, grupp, datum, planerad retur och vem som skrev in lånet.
 - Se försenade lån tydligt markerade på översikten och under **Utlåning**.
 - Lägga till eller byta namn på kategorier, grupper och platser under **Administration**.
+- Kontrollera att varje inventarienummer har rätt format och bara används en gång.
 
 Det finns ingen attest eller godkännandekedja. En användare med åtkomst kan registrera och avsluta ett lån direkt.
 
@@ -27,6 +28,14 @@ Det finns ingen attest eller godkännandekedja. En användare med åtkomst kan r
 1. Öppna **Inventarier**.
 2. Klicka på föremålets rad.
 3. Kontrollera eller ändra uppgifterna och välj **Spara ändringar**.
+
+### Inventarienummer
+
+Varje föremål ska ha ett unikt inventarienummer med exakt tre bokstäver och tre siffror, till exempel `MOB-014`. Exakt tre bokstäver gör alla nummer lika lätta att läsa, sortera och kontrollera; siffrorna `001–999` ger 999 nummer per kategori. De fasta kategorikoderna är `MOB` för möbler, `BEL` för belysning, `LJU` för ljudutrustning och `KOK` för kök och fika. När en ny kategori skapas väljer administratören en ny, lättbegriplig trebokstavskod som inte redan används.
+
+Appen gör bokstäverna stora automatiskt och stoppar fel format eller ett nummer som redan finns. Under **Administration** visas även problem som redan finns i registret.
+
+Flera likadana föremål som förvaras tillsammans och har samma ansvar kan ligga på en rad med rätt **Antal**. Om föremålen behöver följas var för sig ska varje rad få nästa lediga nummer, exempelvis `MOB-014` och `MOB-015`. Två olika rader får aldrig dela inventarienummer.
 
 ### Registrera eller avsluta ett lån
 
