@@ -29,6 +29,8 @@ main { grid-column: 2; min-width: 0; }
 .button.secondary { color: #3f463f; background: white; border-color: #ccd1c9; }
 .button.secondary:hover { border-color: #9ca69c; }
 .button.return { color: var(--red); background: white; border-color: #e8bbb4; }
+.button.danger { color: white; background: var(--red); border-color: var(--red); }
+.button.danger:disabled { color: #8e938e; background: #eef0ec; border-color: #d6dad3; cursor: not-allowed; }
 .icon-button { width: 38px; height: 38px; display: grid; place-items: center; flex: 0 0 38px; padding: 0; border: 1px solid #cfd4d7; border-radius: 2px; color: #1f334f; background: white; }
 .icon-button:hover { border-color: var(--green); color: var(--green); }
 .mobile-menu { display: none; }
@@ -203,6 +205,8 @@ tbody tr:hover td { background: #fbfcfa; }
 .form-grid select[multiple] { min-height: 106px; }
 .form-grid small { color: #8a9088; font-size: 9px; font-weight: 400; }
 .form-error { display: flex !important; flex-direction: row !important; align-items: center; gap: 7px !important; margin: 0; padding: 10px 12px; color: var(--red) !important; background: var(--red-soft); font-size: 10px !important; }
+.delete-item-area { min-height: 44px; display: flex; align-items: center; gap: 10px; padding-top: 6px; border-top: 1px solid #eceee9; }
+.delete-item-area > span { margin-right: auto; color: var(--muted); font-size: 9px; }
 .form-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 5px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 .nav-backdrop { display: none; }

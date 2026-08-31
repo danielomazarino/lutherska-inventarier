@@ -61,8 +61,8 @@ Det här alternativet kan användas utan att appen byggs om:
 Exempel på filnamn:
 
 ```text
-SND-001-Tradlosa-mikrofoner-2026-09-01.jpg
-SND-001-Tradlosa-mikrofoner-2026-09-01-02.jpg
+LJU-001-Tradlosa-mikrofoner-2026-09-01.jpg
+LJU-001-Tradlosa-mikrofoner-2026-09-01-02.jpg
 ```
 
 Använd märkning, namn och datum. Lägg till ett löpnummer om flera bilder tas samma dag. Undvik tecknen `" * : < > ? / \ |`, eftersom de inte får användas i OneDrive-filnamn.

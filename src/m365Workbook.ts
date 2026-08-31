@@ -164,6 +164,13 @@ export class M365Workbook {
     return this.updateRow('Inventory', item.id, [item.id, item.assetTag, item.name, item.categoryId, item.primaryGroupId, item.secondaryGroupIds.join(';'), item.locationId, item.quantity, item.notes])
   }
 
+  async deleteItem(itemId: string) {
+    const loanRows = await this.readTable('Loans')
+    if (loanRows.some((row) => text(row[1]) === itemId)) throw new Error('Föremålet kan inte tas bort eftersom det finns i lånehistoriken.')
+    await this.readTable('Inventory')
+    return this.deleteRow('Inventory', itemId)
+  }
+
   addLoan(loan: Loan) {
     return this.addRow('Loans', [loan.id, loan.itemId, loan.borrower, loan.borrowerGroupId, loan.recordedBy, loan.lentAt, loan.dueAt, loan.returnedAt ?? ''])
   }

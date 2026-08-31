@@ -21,6 +21,7 @@ import {
   Settings,
   SlidersHorizontal,
   Tag,
+  Trash2,
   Users,
   X,
 } from 'lucide-react'
@@ -109,12 +110,17 @@ const newId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toStr
 
 const nextInventorySequence = (data: InventoryData, categoryId: string, currentItemId?: string) => {
   const prefix = categoryPrefixFor(categoryId, data.categories)
-  const used = new Set(data.items.filter((item) => item.id !== currentItemId && normalizeAssetTag(item.assetTag).startsWith(`${prefix}-`)).map((item) => normalizeAssetTag(item.assetTag)))
+  const usedNumbers = data.items
+    .filter((item) => item.id !== currentItemId && normalizeAssetTag(item.assetTag).startsWith(`${prefix}-`))
+    .map((item) => Number(normalizeAssetTag(item.assetTag).slice(-3)))
+    .filter((number) => Number.isInteger(number) && number >= 1 && number <= 999)
+  const highestNumber = Math.max(0, ...usedNumbers)
+  if (highestNumber < 999) return String(highestNumber + 1).padStart(3, '0')
+  const used = new Set(usedNumbers)
   for (let number = 1; number <= 999; number += 1) {
-    const sequence = String(number).padStart(3, '0')
-    if (!used.has(`${prefix}-${sequence}`)) return sequence
+    if (!used.has(number)) return String(number).padStart(3, '0')
   }
-  return '001'
+  return ''
 }
 
 function App() {
@@ -146,16 +152,19 @@ function App() {
   }, [data, workbook])
 
   const refreshWorkbook = async (client = workbook) => {
-    if (!client) return
+    if (!client) return undefined
     setSyncStatus('connecting')
     try {
-      setData(await client.load())
+      const latestData = await client.load()
+      setData(latestData)
       setConnectedUser(client.userName)
       setSyncError('')
       setSyncStatus('synced')
+      return latestData
     } catch (error) {
       setSyncError(error instanceof Error ? error.message : 'Excel could not be refreshed.')
       setSyncStatus('error')
+      return undefined
     }
   }
 
@@ -210,9 +219,25 @@ function App() {
   }, [categoryFilter, data.categories, data.groups, data.items, search])
 
   const optionName = (options: Option[], id: string) => options.find((option) => option.id === id)?.name ?? 'Ej angivet'
-  const openItem = (itemId = '') => { setFormError(''); setSelectedItemId(itemId); setModal(itemId ? 'edit-item' : 'item') }
+  const openItem = async (itemId = '') => {
+    setFormError('')
+    const latestData = workbook ? await refreshWorkbook(workbook) : data
+    if (workbook && !latestData) return
+    if (itemId && !latestData?.items.some((item) => item.id === itemId)) {
+      setSyncError('Föremålet finns inte längre i Excel. Listan har uppdaterats.')
+      setSyncStatus('error')
+      return
+    }
+    setSelectedItemId(itemId)
+    setModal(itemId ? 'edit-item' : 'item')
+  }
   const openLoan = (itemId = '') => { setFormError(''); setSelectedItemId(itemId); setModal('loan') }
   const openLoanDetails = (loanId: string) => { setFormError(''); setSelectedLoanId(loanId); setModal('edit-loan') }
+
+  const suggestInventorySequence = async (categoryId: string, currentItemId?: string) => {
+    const latestData = workbook ? await refreshWorkbook(workbook) : data
+    return nextInventorySequence(latestData ?? data, categoryId, currentItemId)
+  }
 
   const saveRemote = async (operation: (client: M365Workbook) => Promise<unknown>) => {
     if (!workbook) return true
@@ -224,7 +249,7 @@ function App() {
       return true
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Excel could not be updated.'
-      const validationConflict = /^(Inventarienumret|Kategorin|Prefixet)/.test(message)
+      const validationConflict = /^(Inventarienumret|Kategorin|Prefixet|Föremålet)/.test(message)
       if (validationConflict) {
         setFormError(message)
         setSyncError('')
@@ -273,6 +298,17 @@ function App() {
     }
     if (await saveRemote((client) => client.updateItem(item))) {
       setData((current) => ({ ...current, items: current.items.map((entry) => entry.id === item.id ? item : entry) }))
+      setModal(null)
+    }
+  }
+
+  const deleteItem = async (item: Item) => {
+    if (data.loans.some((loan) => loan.itemId === item.id)) {
+      setFormError('Föremålet kan inte tas bort eftersom det finns i lånehistoriken.')
+      return
+    }
+    if (await saveRemote((client) => client.deleteItem(item.id))) {
+      setData((current) => ({ ...current, items: current.items.filter((entry) => entry.id !== item.id) }))
       setModal(null)
     }
   }
@@ -367,11 +403,11 @@ function App() {
           {view === 'inventory' && <Inventory data={data} items={filteredItems} search={search} categoryFilter={categoryFilter} loanedItemIds={loanedItemIds} optionName={optionName} onSearch={setSearch} onCategoryFilter={setCategoryFilter} onEdit={openItem} onLoan={openLoan} />}
           {view === 'loans' && <Loans data={data} optionName={optionName} today={today} onEdit={openLoanDetails} onReturn={returnLoan} />}
           {view === 'administration' && <Administration data={data} onAdd={addOption} onRename={renameOption} />}
-          {view === 'setup' && <Setup m365Config={m365Config} syncStatus={syncStatus} syncError={syncError} connectedUser={connectedUser} onConnect={connectWorkbook} onRefresh={() => refreshWorkbook()} />}
+          {view === 'setup' && <Setup m365Config={m365Config} syncStatus={syncStatus} syncError={syncError} connectedUser={connectedUser} onConnect={connectWorkbook} onRefresh={async () => { await refreshWorkbook() }} />}
           {view === 'documentation' && <Documentation />}
         </div>
       </main>
-      {(modal === 'item' || modal === 'edit-item') && <ItemModal data={data} item={modal === 'edit-item' ? data.items.find((entry) => entry.id === selectedItemId) : undefined} error={formError} onErrorClear={() => setFormError('')} onClose={() => setModal(null)} onSubmit={modal === 'edit-item' ? updateItem : addItem} />}
+      {(modal === 'item' || modal === 'edit-item') && <ItemModal data={data} item={modal === 'edit-item' ? data.items.find((entry) => entry.id === selectedItemId) : undefined} error={formError} hasLoanHistory={modal === 'edit-item' && data.loans.some((loan) => loan.itemId === selectedItemId)} onSuggestSequence={suggestInventorySequence} onDelete={deleteItem} onErrorClear={() => setFormError('')} onClose={() => setModal(null)} onSubmit={modal === 'edit-item' ? updateItem : addItem} />}
       {modal === 'loan' && <LoanModal data={data} availableItems={data.items.filter((item) => !loanedItemIds.has(item.id))} selectedItemId={selectedItemId} onClose={() => setModal(null)} onSubmit={addLoan} />}
       {modal === 'edit-loan' && <LoanModal data={data} availableItems={data.items.filter((item) => Boolean(selectedLoan?.returnedAt) || item.id === selectedLoan?.itemId || !loanedItemIds.has(item.id))} loan={selectedLoan} onClose={() => setModal(null)} onSubmit={updateLoan} />}
     </div>
@@ -545,30 +581,35 @@ function Modal({ title, subtitle, onClose, children }: { title: string; subtitle
   return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><section className="modal" role="dialog" aria-modal="true" aria-label={title}><div className="modal-header"><div><h2>{title}</h2><p>{subtitle}</p></div><button className="icon-button" aria-label="Close" onClick={onClose}><X size={19} /></button></div>{children}</section></div>
 }
 
-function ItemModal({ data, item, error, onErrorClear, onClose, onSubmit }: { data: InventoryData; item?: Item; error: string; onErrorClear: () => void; onClose: () => void; onSubmit: (event: FormEvent<HTMLFormElement>) => void }) {
+function ItemModal({ data, item, error, hasLoanHistory, onSuggestSequence, onDelete, onErrorClear, onClose, onSubmit }: { data: InventoryData; item?: Item; error: string; hasLoanHistory: boolean; onSuggestSequence: (categoryId: string, currentItemId?: string) => Promise<string>; onDelete: (item: Item) => Promise<void>; onErrorClear: () => void; onClose: () => void; onSubmit: (event: FormEvent<HTMLFormElement>) => void }) {
   const initialCategoryId = item?.categoryId ?? data.categories[0]?.id ?? ''
   const initialSequence = item?.assetTag.match(/(\d{3})$/)?.[1] ?? nextInventorySequence(data, initialCategoryId, item?.id)
   const [categoryId, setCategoryId] = useState(initialCategoryId)
   const [sequence, setSequence] = useState(initialSequence)
+  const [sequenceLoading, setSequenceLoading] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const prefix = categoryPrefixFor(categoryId, data.categories)
   const assetTag = `${prefix}-${sequence}`
-  const changeCategory = (nextCategoryId: string) => {
+  const changeCategory = async (nextCategoryId: string) => {
     setCategoryId(nextCategoryId)
-    setSequence(nextInventorySequence(data, nextCategoryId, item?.id))
+    setSequenceLoading(true)
+    setSequence(await onSuggestSequence(nextCategoryId, item?.id))
+    setSequenceLoading(false)
     onErrorClear()
   }
   return <Modal title={item ? 'Visa och redigera föremål' : 'Lägg till föremål'} subtitle={item ? 'Kontrollera eller ändra föremålets uppgifter.' : 'Registrera var föremålet hör hemma och vem som ansvarar.'} onClose={onClose}>
     <form className="form-grid" onSubmit={onSubmit}>
       <label className="full">Namn<input name="name" required autoFocus defaultValue={item?.name} placeholder="t.ex. Portabel projektor" /></label>
-      <label>Inventarienummer<div className="asset-tag-control"><span aria-label={`Kategorikod ${prefix}`}>{prefix}-</span><input aria-label="Löpnummer" inputMode="numeric" required pattern="[0-9]{3}" maxLength={3} value={sequence} onChange={(event) => { setSequence(event.target.value.replace(/\D/g, '').slice(0, 3)); onErrorClear() }} /></div><input name="assetTag" type="hidden" value={assetTag} /><small>Kategorikod och tre siffror.</small></label>
+      <label>Kategori<select name="categoryId" required value={categoryId} disabled={sequenceLoading} onChange={(event) => void changeCategory(event.target.value)}>{data.categories.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label>
       <label>Antal<input name="quantity" required type="number" min="1" defaultValue={item?.quantity ?? 1} /></label>
-      <label>Kategori<select name="categoryId" required value={categoryId} onChange={(event) => changeCategory(event.target.value)}>{data.categories.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label>
+      <label>Inventarienummer<div className="asset-tag-control"><span aria-label={`Kategorikod ${prefix}`}>{prefix}-</span><input aria-label="Löpnummer" inputMode="numeric" required pattern="[0-9]{3}" maxLength={3} disabled={sequenceLoading} value={sequence} onChange={(event) => { setSequence(event.target.value.replace(/\D/g, '').slice(0, 3)); onErrorClear() }} /></div><input name="assetTag" type="hidden" value={assetTag} /><small>{sequenceLoading ? 'Kontrollerar nästa lediga nummer...' : 'Nästa lediga nummer är ifyllt. Det kan ändras.'}</small></label>
       <label>Ansvarig grupp<select name="primaryGroupId" required defaultValue={item?.primaryGroupId}>{data.groups.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label>
       <label className="full">Sekundära grupper<select name="secondaryGroupIds" multiple size={Math.min(data.groups.length, 4)} defaultValue={item?.secondaryGroupIds}>{data.groups.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select><small>Håll Ctrl för att välja flera.</small></label>
       <label className="full">Ordinarie plats<select name="locationId" required defaultValue={item?.locationId}>{data.locations.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label>
       <label className="full">Anteckningar<textarea name="notes" rows={3} defaultValue={item?.notes} placeholder="Skick, tillbehör eller andra användbara uppgifter" /></label>
       {error && <p className="form-error full"><CircleAlert size={16} /> {error}</p>}
-      <div className="form-actions full"><button type="button" className="button secondary" onClick={onClose}>Avbryt</button><button className="button primary">{item ? <Check size={17} /> : <PackagePlus size={17} />} {item ? 'Spara ändringar' : 'Lägg till föremål'}</button></div>
+      {item && <div className="delete-item-area full">{confirmDelete ? <><span>Ta bort {item.name} permanent?</span><button type="button" className="button danger" onClick={() => void onDelete(item)}><Trash2 size={16} /> Bekräfta borttagning</button><button type="button" className="text-button" onClick={() => setConfirmDelete(false)}>Behåll</button></> : <><button type="button" className="button danger" disabled={hasLoanHistory} onClick={() => setConfirmDelete(true)}><Trash2 size={16} /> Ta bort föremål</button>{hasLoanHistory && <span>Kan inte tas bort eftersom föremålet finns i lånehistoriken.</span>}</>}</div>}
+      <div className="form-actions full"><button type="button" className="button secondary" onClick={onClose}>Avbryt</button><button className="button primary" disabled={sequenceLoading}>{item ? <Check size={17} /> : <PackagePlus size={17} />} {item ? 'Spara ändringar' : 'Lägg till föremål'}</button></div>
     </form>
   </Modal>
 }

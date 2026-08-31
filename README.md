@@ -39,6 +39,10 @@ Appen gör bokstäverna stora automatiskt och stoppar fel format eller ett numme
 
 Flera likadana föremål som förvaras tillsammans och har samma ansvar kan ligga på en rad med rätt **Antal**. Om föremålen behöver följas var för sig ska varje rad få nästa lediga nummer, exempelvis `MOB-014` och `MOB-015`. Två olika rader får aldrig dela inventarienummer.
 
+I formuläret väljs kategori före inventarienummer. Appen fyller automatiskt i nästa nummer efter kategorins högsta använda nummer, exempelvis `MOB-016` efter `MOB-014` och `MOB-015`. När Excel är anslutet läses den gemensamma arbetsboken innan förslaget visas och när kategorin byts. Användaren kan fortfarande skriva ett annat ledigt tresiffrigt nummer.
+
+Ett föremål utan lånehistorik kan tas bort från redigeringsformuläret efter en extra bekräftelse. Då blir numret ledigt. Om det borttagna numret var det högsta i kategorin föreslås det automatiskt nästa gång; andra luckor kan väljas manuellt. Föremål som finns i lånehistoriken får inte tas bort, eftersom historiken då skulle förlora sin koppling.
+
 ### Registrera eller avsluta ett lån
 
 1. Öppna **Utlåning** och välj **Registrera lån**.

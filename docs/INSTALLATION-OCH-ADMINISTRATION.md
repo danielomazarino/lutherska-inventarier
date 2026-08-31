@@ -159,7 +159,7 @@ Gör testen i denna ordning och kontrollera arbetsboken efter varje steg:
 
 1. Lägg till kategorin **Textilier** under **Administration**.
 2. Lägg till platsen **Sakristian**.
-3. Lägg till ett testföremål med märkningen **TEST-001**.
+3. Lägg till ett testföremål med namnet **TESTFÖREMÅL** och använd det inventarienummer som appen föreslår. Anteckna numret.
 4. Öppna arbetsboken i Excel för webben och kontrollera att raden finns i tabellen `Inventory`.
 5. Låna ut föremålet och ange både låntagare och vem som registrerar lånet.
 6. Kontrollera att en ny rad finns i tabellen `Loans`.
@@ -171,7 +171,7 @@ Gör testen i denna ordning och kontrollera arbetsboken efter varje steg:
 12. Kontrollera att `ReturnedAt` fyllts i i Excel.
 13. Genomför tvåanvändartestet nedan.
 
-Radera därefter raderna för **TEST-001** från tabellerna `Loans` och `Inventory` i Excel. Ta endast bort dataraderna, inte tabeller, rubriker eller arbetsblad.
+Radera därefter testlånet och raden för **TESTFÖREMÅL** från tabellerna `Loans` och `Inventory` i Excel. Ta endast bort dataraderna, inte tabeller, rubriker eller arbetsblad.
 
 ### Exakt tvåanvändartest
 
@@ -222,7 +222,7 @@ Var öppen med följande under drift:
 - Excel är fortfarande en relativt känslig datakälla vid många samtidiga skrivningar.
 - Personer med redigeringsbehörighet kan fortfarande öppna filen och ändra strukturen manuellt.
 - Appen skickar ännu inga e-postpåminnelser. Försenat syns när appen öppnas.
-- Föremål kan läggas till och redigeras men ännu inte tas bort i appen.
+- Föremål utan lånehistorik kan läggas till, redigeras och tas bort i appen.
 - GitHub Pages-webbplatsen drivs från Daniels privata konto. Kyrkan äger arbetsboken och appregistreringen, men inte webbadressen.
 
 ### Inventarienummer och dubbletter
@@ -230,6 +230,10 @@ Var öppen med följande under drift:
 Inventarienummer följer formatet `AAA-001`: exakt tre stora bokstäver, bindestreck och tre siffror. De fasta svenska prefixen är `MOB`, `BEL`, `LJU` och `KOK`. När en ny kategori skapas väljer administratören en unik trebokstavskod; samma kod ska sedan användas för resten av kategorin.
 
 Appen kontrollerar format, kategoriprefix och dubbletter både mot de data som visas och genom att läsa Inventory-tabellen på nytt omedelbart före en skrivning. Efter en ny rad har lagts till läser appen tabellen igen och tar bort den nya raden om en tidigare rad redan har samma nummer. Den genererade Excel-mallen har dessutom dataverifiering i kolumnen `AssetTag` för manuella ändringar. Befintliga fel visas under **Administration**.
+
+När formuläret för ett nytt föremål öppnas läser appen den anslutna arbetsboken och föreslår nästa nummer efter kategorins högsta använda nummer. Samma kontroll görs när kategorin byts. Ett annat ledigt tresiffrigt nummer kan anges manuellt.
+
+Föremål utan någon lånehistorik kan tas bort efter en extra bekräftelse. Föremål som förekommer i tabellen `Loans` får inte tas bort, även om lånet är återlämnat, eftersom historiken ska förbli begriplig. Ett borttaget nummer blir ledigt; det återanvänds automatiskt om det var kategorins högsta nummer och kan annars väljas manuellt.
 
 Den aktuella arbetsboksmallen har kolumnen `Prefix` i tabellen `Categories`. Om en äldre mall redan har lagts i OneDrive ska den ersättas med den aktuella tomma mallen innan riktiga inventarier registreras. Om arbetsboken redan innehåller riktiga data måste kolumnen läggas till och fyllas i utan att de befintliga raderna tas bort.
 
