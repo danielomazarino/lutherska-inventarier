@@ -1,0 +1,29 @@
+@import url('https://fonts.googleapis.com/css2?family=Alata&display=swap');
+
+:root {
+  font-family: 'Alata', Helvetica, Arial, sans-serif;
+  color: #333333;
+  background: #e0e0e0;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  --ink: #333333;
+  --muted: #6d7278;
+  --green: #1f334f;
+  --green-dark: #162840;
+  --green-soft: #e4e9ef;
+  --line: #d2d4d6;
+  --surface: #ffffff;
+  --canvas: #e0e0e0;
+  --red: #c73f3b;
+  --red-soft: #fae4e1;
+  --gold: #f59b45;
+  --blue: #3688df;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid rgba(49, 92, 67, .22); outline-offset: 1px; }
+h1, h2, p { margin: 0; }
