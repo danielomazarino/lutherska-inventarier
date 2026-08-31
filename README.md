@@ -1,64 +1,126 @@
 # Lutherska Inventarier
 
-Interaktivt inventarie- och utlåningsregister för Lutherska Missionskyrkan. Appen använder en Excel-arbetsbok i kyrkans SharePoint eller OneDrive som gemensam datakälla via Microsoft Graph.
+Lutherska Inventarier är kyrkans gemensamma register för inventarier och utlåning. Det används i webbläsaren på dator eller iPad. Själva informationen sparas i en Excel-arbetsbok i kyrkans Microsoft 365, inte på den publika webbsidan.
 
-Den fullständiga svenska instruktionen för konto, OneDrive/SharePoint, Entra och kostnadsfri GitHub Pages-publicering finns i [docs/INSTALLATION-OCH-PILOT.md](docs/INSTALLATION-OCH-PILOT.md).
+> Ser du **Sampleläge** högst upp? Då visas bara exempeldata i den aktuella webbläsaren. Registrera inte riktiga inventarier förrän statusen visar att Excel är anslutet.
 
-## Funktioner
+## Det här kan ni göra
 
-- Inventarier med märkning, antal, anteckningar, kategori, ordinarie plats och ansvarig grupp
-- Primär och valfri sekundär ansvarig verksamhetsgrupp
-- Dynamiska kategorier, grupper och förvaringsplatser
-- Utlåning med låntagare, grupp, registrerare, datum och planerad retur
-- Tydlig markering av försenade återlämningar
-- Direkt läsning och skrivning mot Excel samt automatisk uppdatering varje minut
-- Sampleläge i webbläsaren tills Microsoft 365 har anslutits
+- Registrera föremål med märkning, antal, kategori, plats och anteckning.
+- Ange en huvudansvarig grupp och vid behov flera andra berörda grupper.
+- Registrera lån med låntagare, grupp, datum, planerad retur och vem som skrev in lånet.
+- Se försenade lån tydligt markerade på översikten och under **Utlåning**.
+- Lägga till eller byta namn på kategorier, grupper och platser under **Inställningar**.
 
-## Starta lokalt
+Det finns ingen attest eller godkännandekedja. En användare med åtkomst kan registrera och avsluta ett lån direkt.
+
+## Så arbetar en administratör
+
+### Lägg till ett föremål
+
+1. Öppna **Inventarier**.
+2. Välj **Lägg till föremål**.
+3. Fyll i uppgifterna och spara.
+
+### Registrera eller avsluta ett lån
+
+1. Öppna **Utlåning** och välj **Registrera lån**.
+2. Ange föremål, låntagare, grupp, datum och planerad retur.
+3. När föremålet kommer tillbaka väljer du **Markera återlämnad**.
+
+### Ändra listorna
+
+Öppna **Inställningar** för att lägga till eller byta namn på kategorier, verksamhetsgrupper och platser. Gör ändringen i appen i stället för direkt i Excel. Då behåller appen rätt kopplingar till redan registrerade föremål.
+
+## Excel-filen bakom appen
+
+Excel-filen heter `Lutherska-Inventarier.xlsx` och innehåller fem blad. De engelska rubrikerna är interna fältnamn som appen behöver. Den som använder appen till vardags behöver normalt inte öppna filen.
+
+### Verksamhetsgrupper
+
+Bladet **Groups** innehåller kyrkans 23 verksamhetsgrupper. Bilden är skapad från den riktiga arbetsboksmallen.
+
+![Excelbladet Groups med kyrkans verksamhetsgrupper](public/docs/excel-grupper.png)
+
+### Inventarier
+
+Bladet **Inventory** fylls på när någon sparar ett föremål i appen. Mallen är tom från början.
+
+![Det tomma Excelbladet Inventory med inventariekolumner](public/docs/excel-inventarier.png)
+
+### Utlåning
+
+Bladet **Loans** fylls på när ett lån registreras. Återlämningsdatum sparas på samma rad när lånet avslutas.
+
+![Det tomma Excelbladet Loans med utlåningskolumner](public/docs/excel-utlaning.png)
+
+De övriga bladen är **Categories** för kategorier och **Locations** för platser. Byt inte namn på bladen, tabellerna eller kolumnrubrikerna. Det kan bryta kopplingen till appen.
+
+## Var finns informationen?
+
+| Del | Vad den gör | Innehåller kyrkans register? |
+| --- | --- | --- |
+| Webbsidan på GitHub Pages | Visar appens knappar, formulär och listor | Nej |
+| Microsoft-inloggningen | Kontrollerar vem användaren är | Nej |
+| Kyrkans OneDrive | Lagrar Excel-filen | Ja |
+| Användarens webbläsare | Visar informationen medan appen används | Tillfälligt |
+
+Webbsidan och källkoden är offentliga för att GitHub Pages ska kunna användas kostnadsfritt. Det gör inte Excel-filen offentlig. Varje läsning och ändring sker med den inloggade användarens Microsoft 365-behörighet.
+
+## Behörighet för användare
+
+En användare behöver:
+
+1. Ett konto som kyrkans Microsoft 365 känner igen.
+2. Redigeringsbehörighet till arbetsboken i OneDrive.
+3. Tillåtelse att använda den registrerade appen i kyrkans Microsoft-miljö.
+
+Kyrkans egna Microsoft 365-konton är den enklaste lösningen. Ett privat Microsoft-konto fungerar inte automatiskt. Det måste först bjudas in som gäst i kyrkans miljö och få åtkomst till filen. Testa alltid gäståtkomst med en person innan ni planerar att använda den brett.
+
+När en person slutar ska administratören ta bort personens behörighet till Excel-filen i OneDrive. Ingen ändring på GitHub behövs.
+
+## Teknisk lösning, enkelt förklarad
+
+Installationen görs en gång av någon som administrerar kyrkans Microsoft 365 och GitHub:
+
+1. Den färdiga Excel-mallen läggs i en kyrkägd OneDrive, gärna under ett funktions- eller administrationskonto.
+2. Personerna som ska använda registret får redigeringsbehörighet till filen.
+3. En appregistrering skapas i Microsoft Entra. Den fungerar som ett digitalt tillstånd för webbsidan att be användaren logga in och arbeta med filen.
+4. GitHub Pages får tre inställningsvärden: kyrkans identitet, appens identitet och länken till arbetsboken.
+5. Lösningen provas med minst två riktiga användarkonton innan den tas i bruk.
+
+Appen har inget lösenord eller någon hemlig nyckel inbyggd. Microsoft Graph är den Microsoft-tjänst som förmedlar läsning och skrivning mellan appen och Excel, alltid som den inloggade personen.
+
+Den detaljerade steg-för-steg-instruktionen finns i [Installation och administration](https://github.com/danielomazarino/lutherska-inventarier/blob/main/docs/INSTALLATION-OCH-ADMINISTRATION.md).
+
+## Löpande administration
+
+- Kontrollera att synkstatus visar **Ansluten** innan viktiga ändringar görs.
+- Hantera kategorier, grupper och platser i appens **Inställningar**.
+- Hantera användarnas filbehörigheter i OneDrive.
+- Använd OneDrives versionshistorik om en felaktig ändring behöver återställas.
+- Flytta inte Excel-filen utan att även uppdatera arbetsbokslänken för webbsidan.
+
+## Om något inte fungerar
+
+| Problem | Kontrollera först |
+| --- | --- |
+| Appen visar Sampleläge | Att de tre anslutningsvärdena är publicerade och att sidan har laddats om |
+| Inloggningen misslyckas | Att kontot tillhör kyrkan eller är inbjudet som gäst |
+| Innehållet går att se men inte ändra | Att användaren har redigeringsbehörighet till Excel-filen |
+| En lista eller tabell kan inte läsas | Att ingen har bytt namn på blad, tabeller eller kolumner i Excel |
+| Ändringar syns inte direkt | Välj uppdatera i appen och kontrollera synkstatus |
+
+## För tekniskt underhåll
+
+Krav: Node.js och npm. Starta lokalt med `npm install` och `npm run dev`.
+
+Kontroller:
 
 ```powershell
-npm install
-npm run dev
-```
-
-Kontrollera lösningen med:
-
-```powershell
+npm run workbook:verify-groups
 npm run lint
 npm run build
 ```
 
-## Skapa Excel-arbetsboken
-
-En färdig arbetsbok finns i `workbook/Lutherska-Inventarier.xlsx`. Skapa om den med:
-
-```powershell
-npm run workbook:create
-```
-
-Arbetsboken innehåller fem namngivna tabeller. Ändra inte tabellnamnen eller kolumnordningen:
-
-| Tabell | Kolumner |
-| --- | --- |
-| `Categories` | Id, Name, Color |
-| `Groups` | Id, Name |
-| `Locations` | Id, Name |
-| `Inventory` | Id, AssetTag, Name, CategoryId, PrimaryGroupId, SecondaryGroupIds, LocationId, Quantity, Notes |
-| `Loans` | Id, ItemId, Borrower, BorrowerGroupId, RecordedBy, LentAt, DueAt, ReturnedAt |
-
-Ladda upp arbetsboken till OneDrive för ett kyrkägt funktions- eller administrationskonto. Om kyrkans exakta paket visar sig innehålla SharePoint kan en kyrkägd dokumentyta användas i stället. Alla användare som ska arbeta i appen behöver redigeringsbehörighet till filen.
-
-## Microsoft 365-anslutning
-
-1. Skapa en appregistrering i Microsoft Entra admin center.
-2. Välj **Single-page application (SPA)** och lägg till `http://localhost:5173` som redirect URI för lokal testning. Lägg även till den framtida produktionsadressen.
-3. Lägg till delegerad Microsoft Graph-behörighet `Files.ReadWrite`. Excel-API:erna stöder inte application permissions.
-4. Kopiera **Tenant ID** och **Application (client) ID**.
-5. Skapa en redigerbar delningslänk till arbetsboken i OneDrive.
-6. Öppna **Inställningar** i appen, fyll i de tre värdena och välj **Logga in och anslut**.
-
-Inga klienthemligheter lagras i appen. MSAL använder den inloggade användarens delegerade behörighet, och varje Graph-anrop kontrolleras även mot användarens faktiska rättighet till arbetsboken.
-
-## Teknisk synkronisering
-
-Delningslänken löses först till arbetsbokens kanoniska `driveId` och `itemId`. Därefter skapas en persistent workbook session. Appen läser och skriver rader i tabellerna och försöker om tillfälliga svar `429`, `503` och `504` med exponentiell väntan. Synkstatus och fel visas alltid i gränssnittet.
+Skapa om arbetsboken med `npm run workbook:create`. Skapa HTML-underlaget till dokumentationens arbetsboksbilder med `npm run workbook:render-preview`.

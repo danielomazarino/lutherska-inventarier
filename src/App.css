@@ -115,6 +115,23 @@ tbody tr:hover td { background: #fbfcfa; }
 .panel-intro p, .setup-title p, .modal-header p { margin-top: 3px; color: var(--muted); font-size: 10px; }
 
 .setup-page { display: grid; gap: 22px; }
+.documentation { max-width: 980px; margin: 0 auto; padding: clamp(24px, 5vw, 58px); color: #40454a; font-size: 13px; line-height: 1.75; animation: appear .25s ease-out; }
+.documentation h1, .documentation h2, .documentation h3 { color: #1f334f; font-family: 'Alata', sans-serif; font-weight: 500; line-height: 1.2; }
+.documentation h1 { margin: 0 0 16px; padding-bottom: 18px; border-bottom: 6px solid #f59b45; font-size: clamp(28px, 4vw, 44px); }
+.documentation h2 { margin: 42px 0 14px; padding-top: 4px; font-size: 24px; }
+.documentation h3 { margin: 28px 0 10px; font-size: 18px; }
+.documentation p { margin: 10px 0; }
+.documentation ul, .documentation ol { padding-left: 22px; }
+.documentation li + li { margin-top: 5px; }
+.documentation a { color: #236dad; font-weight: 500; }
+.documentation code { padding: 2px 5px; border-radius: 2px; color: #9b332f; background: #f3f0ed; }
+.documentation pre { overflow-x: auto; padding: 16px; color: #edf2f7; background: #1f334f; }
+.documentation pre code { padding: 0; color: inherit; background: transparent; }
+.documentation table { min-width: 620px; margin: 18px 0 28px; }
+.documentation th { color: white; background: #1f334f; }
+.documentation td { height: auto; padding: 12px 15px; vertical-align: top; }
+.documentation img { width: 100%; height: auto; display: block; margin: 20px 0 30px; border: 1px solid #c8ccd0; box-shadow: 0 8px 24px rgba(31,51,79,.12); }
+.documentation blockquote { margin: 18px 0; padding: 12px 18px; border-left: 5px solid #f59b45; background: #f7f5f2; }
 .setup-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; align-items: start; animation: appear .25s ease-out; }
 .connection-panel { display: grid; grid-template-columns: minmax(230px, .72fr) minmax(420px, 1.28fr); gap: 28px; padding: 25px; color: white; background: #1f334f; box-shadow: 0 3px 14px rgba(31,51,79,.12); }
 .connection-copy { display: flex; align-items: flex-start; gap: 14px; }

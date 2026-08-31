@@ -1,4 +1,4 @@
-# Installation: Lutherska Inventarier
+# Installation och administration: Lutherska Inventarier
 
 Den här instruktionen utgår från följande upplägg:
 
@@ -7,9 +7,9 @@ Den här instruktionen utgår från följande upplägg:
 - GitHub innehåller endast den publika appkoden. Inventarier, namn och lån lagras inte på GitHub.
 - Kyrkans Excel-arbetsbok ligger i kyrkans OneDrive eller, om tjänsten finns, SharePoint.
 - Varje användare loggar in med sitt eget kyrkkonto.
-- Ingen separat databas, server eller Azure-prenumeration krävs för piloten.
+- Ingen separat databas, server eller Azure-prenumeration krävs för lösningen.
 
-Guiden antar att GitHub-projektet heter `lutherska-inventarier`. Då blir pilotadressen:
+Guiden antar att GitHub-projektet heter `lutherska-inventarier`. Då blir webbadressen:
 
 `https://danielomazarino.github.io/lutherska-inventarier/`
 
@@ -24,9 +24,9 @@ Om ett annat projektnamn används måste samma namn bytas i alla webbadresser ne
 5. Välj **GitHub Actions** under **Build and deployment > Source**.
 6. Låt de tre Microsoft 365-variablerna vara tomma tills du har kyrkkontot.
 7. Kontrollera fliken **Actions**. Arbetsflödet **Deploy to GitHub Pages** ska slutföras utan fel.
-8. Öppna pilotadressen. Appen ska visas i **Sampleläge**.
+8. Öppna webbadressen. Appen ska visas i **Sampleläge**.
 
-Kyrkans användare behöver inte GitHub-konton. De får endast pilotadressen som en vanlig webblänk.
+Kyrkans användare behöver inte GitHub-konton. De får endast webbadressen som en vanlig länk.
 
 ## Steg 1: kontrollera kyrkkontot och licensen
 
@@ -65,7 +65,7 @@ Om kontrollen i steg 1 visar att SharePoint ingår kan arbetsboken senare flytta
 
 1. Markera `Lutherska-Inventarier.xlsx` i SharePoint eller OneDrive.
 2. Välj **Manage access/Hantera åtkomst**.
-3. Ge pilotanvändarna eller en lämplig Microsoft 365-grupp behörigheten **Can edit/Kan redigera**.
+3. Ge användarna eller en lämplig Microsoft 365-grupp behörigheten **Can edit/Kan redigera**.
 4. Använd inte en anonym länk av typen **Anyone/Vem som helst**.
 5. Välj **Copy link/Kopiera länk**.
 6. Välj helst **People with existing access/Personer med befintlig åtkomst**. Länken ska inte i sig ge nya personer behörighet.
@@ -117,7 +117,7 @@ Microsofts ideella licenser är avsedda för behörig personal och vissa volont�
 - Behörigheten är delegerad: appen agerar endast medan en riktig användare är inloggad.
 - Koden använder endast den konfigurerade arbetsboken.
 - Den tekniska behörigheten `Files.ReadWrite` är dock inte låst till just en fil. Den gäller användarens filer enligt Microsofts behörighetsmodell.
-- Använd därför endast kyrkkonton som behövs för piloten och ge dem endast de SharePoint-rättigheter de behöver.
+- Använd därför endast kyrkkonton som behöver registret och ge dem endast de SharePoint-rättigheter de behöver.
 
 ## Steg 5: konfigurera GitHub Pages utan kyrkkonto
 
@@ -143,7 +143,7 @@ Tenant ID och Client ID är publika identifierare, inte lösenord. Arbetsbokslä
 
 ## Steg 6: första riktiga inloggningen
 
-1. Öppna pilotadressen i ett privat webbläsarfönster.
+1. Öppna webbadressen i ett privat webbläsarfönster.
 2. Välj **Anslut Microsoft 365**.
 3. Kontrollera att Tenant ID, Client ID och arbetsbokslänken redan är ifyllda.
 4. Välj **Logga in och anslut**.
@@ -217,32 +217,32 @@ Det viktiga värdet är alltså inte att appen "ersätter Excel med något dyrt"
 
 ## Vad lösningen inte löser ännu
 
-Var öppen med följande under piloten:
+Var öppen med följande under drift:
 
 - Excel är fortfarande en relativt känslig datakälla vid många samtidiga skrivningar.
 - Personer med redigeringsbehörighet kan fortfarande öppna filen och ändra strukturen manuellt.
 - Appen skickar ännu inga e-postpåminnelser. Försenat syns när appen öppnas.
 - Föremål kan läggas till men ännu inte redigeras eller tas bort i appen.
-- GitHub Pages-piloten drivs från Daniels privata konto. Kyrkan äger arbetsboken och appregistreringen, men inte pilotens webbadress.
+- GitHub Pages-webbplatsen drivs från Daniels privata konto. Kyrkan äger arbetsboken och appregistreringen, men inte webbadressen.
 
-Detta är acceptabelt för en liten, kostnadsfri pilot. Om användningen växer är nästa rimliga steg att flytta datan till Microsoft Lists, som ofta ingår i samma Microsoft 365-paket. Appens arbetsflöde kan behållas samtidigt som datalagringen blir mindre känslig.
+Detta är ett rimligt kostnadsfritt upplägg för en mindre verksamhet. Om användningen växer är nästa rimliga steg att flytta datan till Microsoft Lists, som ofta ingår i samma Microsoft 365-paket. Appens arbetsflöde kan behållas samtidigt som datalagringen blir mindre känslig.
 
 ## Kostnad och långsiktigt ägarskap
 
-Pilotens extra kostnad är 0 kronor om kyrkans befintliga paket innehåller Excel, SharePoint/OneDrive och Entra ID:
+Lösningens extra kostnad är 0 kronor om kyrkans befintliga paket innehåller Excel, SharePoint/OneDrive och Entra ID:
 
 - GitHub Pages för ett publikt repository: kostnadsfritt
 - Microsoft Graph för normal användning: ingen separat avgift
 - Excel-arbetsboken: ingår i befintligt Microsoft 365-paket
 - Separat server eller databas: ingen
 
-Efter en lyckad pilot bör webbappen flyttas till kyrkans befintliga webbhotell under exempelvis `https://lutherska.nu/inventarier/`. Det kräver normalt inte ett nytt webbhotell, men någon med åtkomst till webbplatsens filer måste publicera innehållet i mappen `dist`. När adressen ändras måste den nya adressen också läggas till som SPA redirect URI i Entra.
+Om kyrkan senare vill äga även webbadressen kan webbappen flyttas till kyrkans befintliga webbhotell under exempelvis `https://lutherska.nu/inventarier/`. Det kräver normalt inte ett nytt webbhotell, men någon med åtkomst till webbplatsens filer måste publicera innehållet i mappen `dist`. När adressen ändras måste den nya adressen också läggas till som SPA redirect URI i Entra.
 
 Spara följande i kyrkans egen administrativa dokumentation:
 
 - Appregistreringens namn, Tenant ID och Client ID
 - Var arbetsboken ligger
 - Vilka som har åtkomst
-- Pilotens webbadress
+- Webbadressen
 - Vem som ansvarar för GitHub-publiceringen
 - Den här installationsguiden

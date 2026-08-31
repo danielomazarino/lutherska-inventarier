@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 import {
   Boxes,
+  BookOpen,
   Check,
   ChevronDown,
   CircleAlert,
@@ -22,7 +23,10 @@ import {
   Users,
   X,
 } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import './App.css'
+import readme from '../README.md?raw'
 import {
   M365Workbook,
   type InventoryData,
@@ -32,7 +36,7 @@ import {
   type Option,
 } from './m365Workbook'
 
-type View = 'dashboard' | 'inventory' | 'loans' | 'setup'
+type View = 'dashboard' | 'inventory' | 'loans' | 'setup' | 'documentation'
 
 const STORAGE_KEY = 'church-inventory-v3'
 const M365_CONFIG_KEY = 'church-inventory-m365-config'
@@ -264,6 +268,7 @@ function App() {
     { id: 'inventory', label: 'Inventarier', icon: Boxes, count: data.items.length },
     { id: 'loans', label: 'Utlåning', icon: Handshake, count: activeLoans.length },
     { id: 'setup', label: 'Inställningar', icon: Settings },
+    { id: 'documentation', label: 'Dokumentation', icon: BookOpen },
   ]
   const navigate = (nextView: View) => { setView(nextView); setMobileNavOpen(false) }
 
@@ -283,7 +288,7 @@ function App() {
           <div><p className="eyebrow">Lutherska Missionskyrkan</p><h1>{navItems.find((item) => item.id === view)?.label}</h1></div>
           <div className="header-actions">
             {workbook ? <button className="button secondary" disabled={syncStatus === 'connecting'} onClick={() => void refreshWorkbook()}><RefreshCw size={17} className={syncStatus === 'connecting' ? 'spin' : ''} /> Uppdatera</button> : <button className="button secondary" onClick={() => navigate('setup')}><LogIn size={17} /> Anslut Microsoft 365</button>}
-            <button className="button primary" onClick={() => setModal(view === 'loans' ? 'loan' : 'item')}><Plus size={18} /> {view === 'loans' ? 'Registrera lån' : 'Lägg till föremål'}</button>
+            {view !== 'documentation' && <button className="button primary" onClick={() => setModal(view === 'loans' ? 'loan' : 'item')}><Plus size={18} /> {view === 'loans' ? 'Registrera lån' : 'Lägg till föremål'}</button>}
           </div>
         </header>
         <div className="content">
@@ -291,12 +296,25 @@ function App() {
           {view === 'inventory' && <Inventory data={data} items={filteredItems} search={search} categoryFilter={categoryFilter} loanedItemIds={loanedItemIds} optionName={optionName} onSearch={setSearch} onCategoryFilter={setCategoryFilter} onLoan={openLoan} />}
           {view === 'loans' && <Loans data={data} optionName={optionName} today={today} onReturn={returnLoan} />}
           {view === 'setup' && <Setup data={data} m365Config={m365Config} syncStatus={syncStatus} syncError={syncError} connectedUser={connectedUser} onConnect={connectWorkbook} onRefresh={() => refreshWorkbook()} onAdd={addOption} onRename={renameOption} />}
+          {view === 'documentation' && <Documentation />}
         </div>
       </main>
       {modal === 'item' && <ItemModal data={data} onClose={() => setModal(null)} onSubmit={addItem} />}
       {modal === 'loan' && <LoanModal data={data} availableItems={data.items.filter((item) => !loanedItemIds.has(item.id))} selectedItemId={selectedItemId} onClose={() => setModal(null)} onSubmit={addLoan} />}
     </div>
   )
+}
+
+function Documentation() {
+  return <article className="documentation panel">
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        img: ({ src, alt }) => <img src={new URL((src ?? '').replace(/^public\//, ''), document.baseURI).href} alt={alt ?? ''} />,
+        a: ({ href, children }) => <a href={href} target={href?.startsWith('http') ? '_blank' : undefined} rel="noreferrer">{children}</a>,
+      }}
+    >{readme}</ReactMarkdown>
+  </article>
 }
 
 type SharedProps = { data: InventoryData; optionName: (options: Option[], id: string) => string }
