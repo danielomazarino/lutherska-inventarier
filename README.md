@@ -110,17 +110,3 @@ Den detaljerade steg-för-steg-instruktionen finns i [Installation och administr
 | Innehållet går att se men inte ändra | Att användaren har redigeringsbehörighet till Excel-filen |
 | En lista eller tabell kan inte läsas | Att ingen har bytt namn på blad, tabeller eller kolumner i Excel |
 | Ändringar syns inte direkt | Välj uppdatera i appen och kontrollera synkstatus |
-
-## För tekniskt underhåll
-
-Krav: Node.js och npm. Starta lokalt med `npm install` och `npm run dev`.
-
-Kontroller:
-
-```powershell
-npm run workbook:verify-groups
-npm run lint
-npm run build
-```
-
-Skapa om arbetsboken med `npm run workbook:create`. Skapa HTML-underlaget till dokumentationens arbetsboksbilder med `npm run workbook:render-preview`.

@@ -246,3 +246,37 @@ Spara följande i kyrkans egen administrativa dokumentation:
 - Webbadressen
 - Vem som ansvarar för GitHub-publiceringen
 - Den här installationsguiden
+
+## Tekniskt underhåll av appkoden
+
+Det här avsnittet behövs **inte** för kyrkans vanliga användning. När appen väl ligger på GitHub Pages behöver ordföranden och administratörerna inte installera Node.js, köra kommandon eller starta appen lokalt. De öppnar bara webbadressen.
+
+Kommandona nedan behövs endast om någon senare ändrar appens källkod eller bygger om Excel-mallen. GitHub Pages bygger och publicerar automatiskt en ny version när en ändring skickas till GitHub-projektets huvudgren.
+
+För lokalt utvecklingsarbete behöver den tekniskt ansvariga personen Node.js och npm. Första gången körs:
+
+```powershell
+npm install
+npm run dev
+```
+
+`npm install` hämtar de programdelar som appen använder. `npm run dev` öppnar en lokal testversion på datorn. Den lokala testversionen påverkar inte den publicerade appen.
+
+Före publicering bör följande kontroller köras:
+
+```powershell
+npm run workbook:verify-groups
+npm run lint
+npm run build
+```
+
+- `workbook:verify-groups` kontrollerar att verksamhetsgrupperna är samma i appen och Excel-mallen.
+- `lint` söker efter vanliga kodfel.
+- `build` kontrollerar att den färdiga webbappen kan skapas.
+
+Två ytterligare kommandon används bara vid särskilda ändringar:
+
+- `npm run workbook:create` skapar om den tomma Excel-mallen.
+- `npm run workbook:render-preview` skapar underlaget för arbetsboksbilderna i dokumentationen.
+
+Ingen av dessa åtgärder krävs för att registrera inventarier, hantera lån eller administrera användarnas åtkomst till Excel-filen.
