@@ -22,6 +22,12 @@ Det finns ingen attest eller godkännandekedja. En användare med åtkomst kan r
 2. Välj **Lägg till föremål**.
 3. Fyll i uppgifterna och spara.
 
+### Visa eller ändra ett föremål
+
+1. Öppna **Inventarier**.
+2. Klicka på föremålets rad.
+3. Kontrollera eller ändra uppgifterna och välj **Spara ändringar**.
+
 ### Registrera eller avsluta ett lån
 
 1. Öppna **Utlåning** och välj **Registrera lån**.

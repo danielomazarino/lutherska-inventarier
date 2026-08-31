@@ -74,6 +74,8 @@ main { grid-column: 2; min-width: 0; }
 .compact-row { min-height: 61px; display: grid; grid-template-columns: 9px minmax(0, 1fr) auto; align-items: center; gap: 13px; }
 .compact-row + .compact-row { border-top: 1px solid #edf0e9; }
 .compact-row > div { display: flex; flex-direction: column; gap: 2px; }
+.inventory-summary-row { cursor: pointer; }
+.inventory-summary-row:focus-visible { outline: 3px solid #f59b45; outline-offset: -3px; }
 .category-swatch { width: 8px; height: 30px; border-radius: 2px; }
 .compact-row .quiet-label { padding: 4px 8px; border-radius: 4px; color: #596059; background: #f0f2ed; font-size: 9px; }
 .group-bars { display: grid; gap: 14px; padding: 20px 22px 24px; }
@@ -96,6 +98,8 @@ th { height: 43px; padding: 0 15px; color: #747b74; background: #f7f8f5; border-
 td { height: 69px; padding: 10px 15px; border-bottom: 1px solid #eceee9; color: #4f5650; font-size: 11px; vertical-align: middle; }
 tbody tr:last-child td { border-bottom: 0; }
 tbody tr:hover td { background: #fbfcfa; }
+.inventory-row { cursor: pointer; }
+.inventory-row:focus-visible { outline: 3px solid #f59b45; outline-offset: -3px; }
 .overdue-table-row td { background: #fff9f8; }
 .item-cell { min-width: 190px; display: flex; align-items: center; gap: 11px; }
 .item-cell .item-symbol { width: 35px; height: 35px; flex-basis: 35px; }

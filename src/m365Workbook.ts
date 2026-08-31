@@ -147,6 +147,10 @@ export class M365Workbook {
     return this.addRow('Inventory', [item.id, item.assetTag, item.name, item.categoryId, item.primaryGroupId, item.secondaryGroupIds.join(';'), item.locationId, item.quantity, item.notes])
   }
 
+  updateItem(item: Item) {
+    return this.updateRow('Inventory', item.id, [item.id, item.assetTag, item.name, item.categoryId, item.primaryGroupId, item.secondaryGroupIds.join(';'), item.locationId, item.quantity, item.notes])
+  }
+
   addLoan(loan: Loan) {
     return this.addRow('Loans', [loan.id, loan.itemId, loan.borrower, loan.borrowerGroupId, loan.recordedBy, loan.lentAt, loan.dueAt, loan.returnedAt ?? ''])
   }
@@ -194,10 +198,12 @@ export class M365Workbook {
   }
 
   private async addRow(name: TableName, values: unknown[]) {
-    await this.request(`/workbook/tables/${name}/rows/add`, {
+    const row = await this.request<{ index: number }>(`/workbook/tables/${name}/rows/add`, {
       method: 'POST',
       body: JSON.stringify({ values: [values] }),
     })
+    const id = text(values[0])
+    if (id) this.rowIndexes[name].set(id, row.index)
   }
 
   private async updateRow(name: TableName, id: string, values: unknown[]) {
