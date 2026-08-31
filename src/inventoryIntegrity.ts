@@ -1,6 +1,10 @@
 type InventoryTagRecord = { id: string; assetTag: string; categoryId: string }
 type NamedInventoryTagRecord = InventoryTagRecord & { name: string }
 type CategoryRecord = { id: string; name: string; prefix?: string }
+type MigratableInventoryData = {
+  categories: CategoryRecord[]
+  items: NamedInventoryTagRecord[]
+}
 
 export const ASSET_TAG_PATTERN = /^[A-Z]{3}-\d{3}$/
 export const BUILT_IN_CATEGORY_PREFIXES: Record<string, string> = {
@@ -13,6 +17,50 @@ export const BUILT_IN_CATEGORY_PREFIXES: Record<string, string> = {
 export const normalizeAssetTag = (value: string) => value.trim().toUpperCase()
 
 export const normalizeCategoryPrefix = (value: string) => value.trim().toUpperCase()
+
+const nextCategoryPrefix = (name: string, usedPrefixes: Set<string>) => {
+  const letters = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z]/g, '')
+  const padded = `${letters}XXX`
+  for (let second = 1; second < padded.length - 1; second += 1) {
+    for (let third = second + 1; third < padded.length; third += 1) {
+      const candidate = `${padded[0]}${padded[second]}${padded[third]}`
+      if (!usedPrefixes.has(candidate)) return candidate
+    }
+  }
+  for (let index = 0; index < 26; index += 1) {
+    const candidate = `${padded.slice(0, 2)}${String.fromCharCode(65 + index)}`
+    if (!usedPrefixes.has(candidate)) return candidate
+  }
+  return 'NYA'
+}
+
+export const migrateSampleInventory = <T extends MigratableInventoryData>(data: T): T => {
+  const usedPrefixes = new Set<string>()
+  const categories = data.categories.map((category) => {
+    const configured = normalizeCategoryPrefix(BUILT_IN_CATEGORY_PREFIXES[category.id] ?? category.prefix ?? '')
+    const prefix = /^[A-Z]{3}$/.test(configured) && !usedPrefixes.has(configured)
+      ? configured
+      : nextCategoryPrefix(category.name, usedPrefixes)
+    usedPrefixes.add(prefix)
+    return { ...category, prefix }
+  })
+  const prefixByCategory = new Map(categories.map((category) => [category.id, category.prefix]))
+  const usedTags = new Set<string>()
+  const items = data.items.map((item) => {
+    const prefix = prefixByCategory.get(item.categoryId) ?? 'OVR'
+    const normalizedTag = normalizeAssetTag(item.assetTag)
+    const suffix = normalizedTag.match(/(\d{1,3})$/)?.[1]
+    let number = suffix ? Number(suffix) : 1
+    let assetTag = `${prefix}-${String(number).padStart(3, '0')}`
+    for (let attempts = 0; usedTags.has(assetTag) && attempts < 999; attempts += 1) {
+      number = number >= 999 ? 1 : number + 1
+      assetTag = `${prefix}-${String(number).padStart(3, '0')}`
+    }
+    usedTags.add(assetTag)
+    return { ...item, assetTag }
+  })
+  return { ...data, categories, items }
+}
 
 export const categoryPrefixFor = (categoryId: string, categories: CategoryRecord[]) => normalizeCategoryPrefix(BUILT_IN_CATEGORY_PREFIXES[categoryId] ?? categories.find((category) => category.id === categoryId)?.prefix ?? '')
 

@@ -28,7 +28,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import './App.css'
 import readme from '../README.md?raw'
-import { assetTagError, BUILT_IN_CATEGORY_PREFIXES, categoryPrefixFor, inventoryIntegrityIssues, normalizeAssetTag, normalizeCategoryPrefix } from './inventoryIntegrity'
+import { assetTagError, BUILT_IN_CATEGORY_PREFIXES, categoryPrefixFor, inventoryIntegrityIssues, migrateSampleInventory, normalizeAssetTag, normalizeCategoryPrefix } from './inventoryIntegrity'
 import {
   M365Workbook,
   type InventoryData,
@@ -40,7 +40,8 @@ import {
 
 type View = 'dashboard' | 'inventory' | 'loans' | 'administration' | 'documentation' | 'setup'
 
-const STORAGE_KEY = 'church-inventory-v3'
+const STORAGE_KEY = 'church-inventory-v4'
+const LEGACY_STORAGE_KEY = 'church-inventory-v3'
 const M365_CONFIG_KEY = 'church-inventory-m365-config'
 const deployedM365Config: M365Config = {
   tenantId: import.meta.env.VITE_M365_TENANT_ID ?? '',
@@ -106,10 +107,22 @@ const seedData: InventoryData = {
 
 const newId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`
 
+const nextInventorySequence = (data: InventoryData, categoryId: string, currentItemId?: string) => {
+  const prefix = categoryPrefixFor(categoryId, data.categories)
+  const used = new Set(data.items.filter((item) => item.id !== currentItemId && normalizeAssetTag(item.assetTag).startsWith(`${prefix}-`)).map((item) => normalizeAssetTag(item.assetTag)))
+  for (let number = 1; number <= 999; number += 1) {
+    const sequence = String(number).padStart(3, '0')
+    if (!used.has(`${prefix}-${sequence}`)) return sequence
+  }
+  return '001'
+}
+
 function App() {
   const [data, setData] = useState<InventoryData>(() => {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    return stored ? (JSON.parse(stored) as InventoryData) : seedData
+    const stored = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY)
+    const migrated = migrateSampleInventory(stored ? JSON.parse(stored) as InventoryData : seedData)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated))
+    return migrated
   })
   const [view, setView] = useState<View>('dashboard')
   const [search, setSearch] = useState('')
@@ -533,7 +546,31 @@ function Modal({ title, subtitle, onClose, children }: { title: string; subtitle
 }
 
 function ItemModal({ data, item, error, onErrorClear, onClose, onSubmit }: { data: InventoryData; item?: Item; error: string; onErrorClear: () => void; onClose: () => void; onSubmit: (event: FormEvent<HTMLFormElement>) => void }) {
-  return <Modal title={item ? 'Visa och redigera föremål' : 'Lägg till föremål'} subtitle={item ? 'Kontrollera eller ändra föremålets uppgifter.' : 'Registrera var föremålet hör hemma och vem som ansvarar.'} onClose={onClose}><form className="form-grid" onSubmit={onSubmit}><label className="full">Namn<input name="name" required autoFocus defaultValue={item?.name} placeholder="t.ex. Portabel projektor" /></label><label>Inventarienummer<input name="assetTag" required pattern="[A-Za-z]{3}-[0-9]{3}" maxLength={7} defaultValue={item?.assetTag} placeholder="t.ex. MOB-014" onInput={(event) => { event.currentTarget.value = event.currentTarget.value.toUpperCase(); onErrorClear() }} /><small>Tre bokstäver och tre siffror.</small></label><label>Antal<input name="quantity" required type="number" min="1" defaultValue={item?.quantity ?? 1} /></label><label>Kategori<select name="categoryId" required defaultValue={item?.categoryId}>{data.categories.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label><label>Ansvarig grupp<select name="primaryGroupId" required defaultValue={item?.primaryGroupId}>{data.groups.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label><label className="full">Sekundära grupper<select name="secondaryGroupIds" multiple size={Math.min(data.groups.length, 4)} defaultValue={item?.secondaryGroupIds}>{data.groups.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select><small>Håll Ctrl för att välja flera.</small></label><label className="full">Ordinarie plats<select name="locationId" required defaultValue={item?.locationId}>{data.locations.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label><label className="full">Anteckningar<textarea name="notes" rows={3} defaultValue={item?.notes} placeholder="Skick, tillbehör eller andra användbara uppgifter" /></label>{error && <p className="form-error full"><CircleAlert size={16} /> {error}</p>}<div className="form-actions full"><button type="button" className="button secondary" onClick={onClose}>Avbryt</button><button className="button primary">{item ? <Check size={17} /> : <PackagePlus size={17} />} {item ? 'Spara ändringar' : 'Lägg till föremål'}</button></div></form></Modal>
+  const initialCategoryId = item?.categoryId ?? data.categories[0]?.id ?? ''
+  const initialSequence = item?.assetTag.match(/(\d{3})$/)?.[1] ?? nextInventorySequence(data, initialCategoryId, item?.id)
+  const [categoryId, setCategoryId] = useState(initialCategoryId)
+  const [sequence, setSequence] = useState(initialSequence)
+  const prefix = categoryPrefixFor(categoryId, data.categories)
+  const assetTag = `${prefix}-${sequence}`
+  const changeCategory = (nextCategoryId: string) => {
+    setCategoryId(nextCategoryId)
+    setSequence(nextInventorySequence(data, nextCategoryId, item?.id))
+    onErrorClear()
+  }
+  return <Modal title={item ? 'Visa och redigera föremål' : 'Lägg till föremål'} subtitle={item ? 'Kontrollera eller ändra föremålets uppgifter.' : 'Registrera var föremålet hör hemma och vem som ansvarar.'} onClose={onClose}>
+    <form className="form-grid" onSubmit={onSubmit}>
+      <label className="full">Namn<input name="name" required autoFocus defaultValue={item?.name} placeholder="t.ex. Portabel projektor" /></label>
+      <label>Inventarienummer<div className="asset-tag-control"><span aria-label={`Kategorikod ${prefix}`}>{prefix}-</span><input aria-label="Löpnummer" inputMode="numeric" required pattern="[0-9]{3}" maxLength={3} value={sequence} onChange={(event) => { setSequence(event.target.value.replace(/\D/g, '').slice(0, 3)); onErrorClear() }} /></div><input name="assetTag" type="hidden" value={assetTag} /><small>Kategorikod och tre siffror.</small></label>
+      <label>Antal<input name="quantity" required type="number" min="1" defaultValue={item?.quantity ?? 1} /></label>
+      <label>Kategori<select name="categoryId" required value={categoryId} onChange={(event) => changeCategory(event.target.value)}>{data.categories.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label>
+      <label>Ansvarig grupp<select name="primaryGroupId" required defaultValue={item?.primaryGroupId}>{data.groups.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label>
+      <label className="full">Sekundära grupper<select name="secondaryGroupIds" multiple size={Math.min(data.groups.length, 4)} defaultValue={item?.secondaryGroupIds}>{data.groups.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select><small>Håll Ctrl för att välja flera.</small></label>
+      <label className="full">Ordinarie plats<select name="locationId" required defaultValue={item?.locationId}>{data.locations.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label>
+      <label className="full">Anteckningar<textarea name="notes" rows={3} defaultValue={item?.notes} placeholder="Skick, tillbehör eller andra användbara uppgifter" /></label>
+      {error && <p className="form-error full"><CircleAlert size={16} /> {error}</p>}
+      <div className="form-actions full"><button type="button" className="button secondary" onClick={onClose}>Avbryt</button><button className="button primary">{item ? <Check size={17} /> : <PackagePlus size={17} />} {item ? 'Spara ändringar' : 'Lägg till föremål'}</button></div>
+    </form>
+  </Modal>
 }
 
 function LoanModal({ data, availableItems, selectedItemId = '', loan, onClose, onSubmit }: { data: InventoryData; availableItems: Item[]; selectedItemId?: string; loan?: Loan; onClose: () => void; onSubmit: (event: FormEvent<HTMLFormElement>) => void }) {

@@ -35,6 +35,8 @@ Varje föremål ska ha ett unikt inventarienummer med exakt tre bokstäver och t
 
 Appen gör bokstäverna stora automatiskt och stoppar fel format eller ett nummer som redan finns. Under **Administration** visas även problem som redan finns i registret.
 
+Äldre sparad exempeldata i **Sampleläge** uppdateras automatiskt till kategoriernas svenska koder. Om två gamla exempelrader hade samma nummer behåller den första numret och nästa rad får följande lediga nummer.
+
 Flera likadana föremål som förvaras tillsammans och har samma ansvar kan ligga på en rad med rätt **Antal**. Om föremålen behöver följas var för sig ska varje rad få nästa lediga nummer, exempelvis `MOB-014` och `MOB-015`. Två olika rader får aldrig dela inventarienummer.
 
 ### Registrera eller avsluta ett lån

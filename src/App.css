@@ -196,6 +196,10 @@ tbody tr:hover td { background: #fbfcfa; }
 .form-grid label { display: flex; flex-direction: column; gap: 6px; color: #4b524c; font-size: 10px; font-weight: 700; }
 .form-grid label.full, .form-actions.full { grid-column: 1 / -1; }
 .form-grid input, .form-grid select, .form-grid textarea { width: 100%; min-height: 40px; padding: 9px 11px; border: 1px solid #cfd5cc; border-radius: 5px; outline: none; color: var(--ink); background: #fcfdfb; font-size: 11px; resize: vertical; }
+.asset-tag-control { min-height: 40px; display: grid; grid-template-columns: auto 1fr; align-items: center; overflow: hidden; border: 1px solid #cfd5cc; border-radius: 5px; background: #fcfdfb; }
+.asset-tag-control span { height: 100%; display: flex; align-items: center; padding: 0 0 0 11px; color: #1f334f; font-size: 12px; font-weight: 700; }
+.asset-tag-control input { min-height: 38px; padding-left: 2px; border: 0; border-radius: 0; }
+.asset-tag-control:focus-within { border-color: var(--green); }
 .form-grid select[multiple] { min-height: 106px; }
 .form-grid small { color: #8a9088; font-size: 9px; font-weight: 400; }
 .form-error { display: flex !important; flex-direction: row !important; align-items: center; gap: 7px !important; margin: 0; padding: 10px 12px; color: var(--red) !important; background: var(--red-soft); font-size: 10px !important; }
