@@ -10,7 +10,7 @@ Lutherska Inventarier är kyrkans gemensamma register för inventarier och utlå
 - Ange en huvudansvarig grupp och vid behov flera andra berörda grupper.
 - Registrera lån med låntagare, grupp, datum, planerad retur och vem som skrev in lånet.
 - Se försenade lån tydligt markerade på översikten och under **Utlåning**.
-- Lägga till eller byta namn på kategorier, grupper och platser under **Inställningar**.
+- Lägga till eller byta namn på kategorier, grupper och platser under **Administration**.
 
 Det finns ingen attest eller godkännandekedja. En användare med åtkomst kan registrera och avsluta ett lån direkt.
 
@@ -37,7 +37,7 @@ Det finns ingen attest eller godkännandekedja. En användare med åtkomst kan r
 
 ### Ändra listorna
 
-Öppna **Inställningar** för att lägga till eller byta namn på kategorier, verksamhetsgrupper och platser. Gör ändringen i appen i stället för direkt i Excel. Då behåller appen rätt kopplingar till redan registrerade föremål.
+Öppna **Administration** för att lägga till eller byta namn på kategorier, verksamhetsgrupper och platser. Gör ändringen i appen i stället för direkt i Excel. Då behåller appen rätt kopplingar till redan registrerade föremål.
 
 ## Excel-filen bakom appen
 
@@ -99,14 +99,6 @@ Installationen görs en gång av någon som administrerar kyrkans Microsoft 365 
 Appen har inget lösenord eller någon hemlig nyckel inbyggd. Microsoft Graph är den Microsoft-tjänst som förmedlar läsning och skrivning mellan appen och Excel, alltid som den inloggade personen.
 
 Den detaljerade steg-för-steg-instruktionen finns i [Installation och administration](https://github.com/danielomazarino/lutherska-inventarier/blob/main/docs/INSTALLATION-OCH-ADMINISTRATION.md).
-
-## Löpande administration
-
-- Kontrollera att synkstatus visar **Ansluten** innan viktiga ändringar görs.
-- Hantera kategorier, grupper och platser i appens **Inställningar**.
-- Hantera användarnas filbehörigheter i OneDrive.
-- Använd OneDrives versionshistorik om en felaktig ändring behöver återställas.
-- Flytta inte Excel-filen utan att även uppdatera arbetsbokslänken för webbsidan.
 
 ## Om något inte fungerar
 

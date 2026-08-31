@@ -19,6 +19,7 @@ import {
   RotateCcw,
   Search,
   Settings,
+  SlidersHorizontal,
   Tag,
   Users,
   X,
@@ -36,7 +37,7 @@ import {
   type Option,
 } from './m365Workbook'
 
-type View = 'dashboard' | 'inventory' | 'loans' | 'setup' | 'documentation'
+type View = 'dashboard' | 'inventory' | 'loans' | 'administration' | 'documentation' | 'setup'
 
 const STORAGE_KEY = 'church-inventory-v3'
 const M365_CONFIG_KEY = 'church-inventory-m365-config'
@@ -304,8 +305,9 @@ function App() {
     { id: 'dashboard', label: 'Översikt', icon: LayoutDashboard },
     { id: 'inventory', label: 'Inventarier', icon: Boxes, count: data.items.length },
     { id: 'loans', label: 'Utlåning', icon: Handshake, count: activeLoans.length },
-    { id: 'setup', label: 'Inställningar', icon: Settings },
+    { id: 'administration', label: 'Administration', icon: SlidersHorizontal },
     { id: 'documentation', label: 'Dokumentation', icon: BookOpen },
+    { id: 'setup', label: 'Inställningar', icon: Settings },
   ]
   const navigate = (nextView: View) => { setView(nextView); setMobileNavOpen(false) }
 
@@ -324,15 +326,16 @@ function App() {
           <button className="icon-button mobile-menu" aria-label="Open menu" onClick={() => setMobileNavOpen(true)}><Menu /></button>
           <div><p className="eyebrow">Lutherska Missionskyrkan</p><h1>{navItems.find((item) => item.id === view)?.label}</h1></div>
           <div className="header-actions">
-            {workbook ? <button className="button secondary" disabled={syncStatus === 'connecting'} onClick={() => void refreshWorkbook()}><RefreshCw size={17} className={syncStatus === 'connecting' ? 'spin' : ''} /> Uppdatera</button> : <button className="button secondary" onClick={() => navigate('setup')}><LogIn size={17} /> Anslut Microsoft 365</button>}
-            {view !== 'documentation' && <button className="button primary" onClick={() => view === 'loans' ? openLoan() : openItem()}><Plus size={18} /> {view === 'loans' ? 'Registrera lån' : 'Lägg till föremål'}</button>}
+            {view !== 'setup' && (workbook ? <button className="button secondary" disabled={syncStatus === 'connecting'} onClick={() => void refreshWorkbook()}><RefreshCw size={17} className={syncStatus === 'connecting' ? 'spin' : ''} /> Uppdatera</button> : <button className="button secondary" onClick={() => navigate('setup')}><LogIn size={17} /> Anslut Microsoft 365</button>)}
+            {(view === 'dashboard' || view === 'inventory' || view === 'loans') && <button className="button primary" onClick={() => view === 'loans' ? openLoan() : openItem()}><Plus size={18} /> {view === 'loans' ? 'Registrera lån' : 'Lägg till föremål'}</button>}
           </div>
         </header>
         <div className="content">
           {view === 'dashboard' && <Dashboard data={data} activeLoans={activeLoans} overdueLoans={overdueLoans} optionName={optionName} onNavigate={navigate} onEdit={openItem} onReturn={returnLoan} />}
           {view === 'inventory' && <Inventory data={data} items={filteredItems} search={search} categoryFilter={categoryFilter} loanedItemIds={loanedItemIds} optionName={optionName} onSearch={setSearch} onCategoryFilter={setCategoryFilter} onEdit={openItem} onLoan={openLoan} />}
           {view === 'loans' && <Loans data={data} optionName={optionName} today={today} onEdit={openLoanDetails} onReturn={returnLoan} />}
-          {view === 'setup' && <Setup data={data} m365Config={m365Config} syncStatus={syncStatus} syncError={syncError} connectedUser={connectedUser} onConnect={connectWorkbook} onRefresh={() => refreshWorkbook()} onAdd={addOption} onRename={renameOption} />}
+          {view === 'administration' && <Administration data={data} onAdd={addOption} onRename={renameOption} />}
+          {view === 'setup' && <Setup m365Config={m365Config} syncStatus={syncStatus} syncError={syncError} connectedUser={connectedUser} onConnect={connectWorkbook} onRefresh={() => refreshWorkbook()} />}
           {view === 'documentation' && <Documentation />}
         </div>
       </main>
@@ -407,16 +410,24 @@ function Loans({ data, optionName, today, onEdit, onReturn }: SharedProps & { to
   })}</tbody></table></div></section>
 }
 
-function Setup({ data, m365Config, syncStatus, syncError, connectedUser, onConnect, onRefresh, onAdd, onRename }: {
+function Administration({ data, onAdd, onRename }: {
   data: InventoryData
+  onAdd: (kind: 'categories' | 'groups' | 'locations', name: string) => void
+  onRename: (kind: 'categories' | 'groups' | 'locations', id: string, name: string) => void
+}) {
+  return <div className="administration-page">
+    <div className="page-intro"><span className="section-kicker">Registervård</span><h2>Kategorier, grupper och platser</h2><p>Hantera de gemensamma val som används när föremål och lån registreras.</p></div>
+    <div className="setup-grid"><SetupList icon={Tag} title="Kategorier" description="Olika typer av föremål" kind="categories" options={data.categories} onAdd={onAdd} onRename={onRename} /><SetupList icon={Users} title="Verksamhetsgrupper" description="Primärt och sekundärt ansvar" kind="groups" options={data.groups} onAdd={onAdd} onRename={onRename} /><SetupList icon={MapPin} title="Platser" description="Fasta placeringar och förråd" kind="locations" options={data.locations} onAdd={onAdd} onRename={onRename} /></div>
+  </div>
+}
+
+function Setup({ m365Config, syncStatus, syncError, connectedUser, onConnect, onRefresh }: {
   m365Config: M365Config
   syncStatus: 'sample' | 'connecting' | 'synced' | 'saving' | 'error'
   syncError: string
   connectedUser: string
   onConnect: (config: M365Config) => Promise<void>
   onRefresh: () => Promise<void>
-  onAdd: (kind: 'categories' | 'groups' | 'locations', name: string) => void
-  onRename: (kind: 'categories' | 'groups' | 'locations', id: string, name: string) => void
 }) {
   const connect = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -442,7 +453,15 @@ function Setup({ data, m365Config, syncStatus, syncError, connectedUser, onConne
         {syncError && <p className="connection-error full"><CircleAlert size={15} /> {syncError}</p>}
       </form>
     </section>
-    <div className="setup-grid"><SetupList icon={Tag} title="Kategorier" description="Olika typer av föremål" kind="categories" options={data.categories} onAdd={onAdd} onRename={onRename} /><SetupList icon={Users} title="Verksamhetsgrupper" description="Primärt och sekundärt ansvar" kind="groups" options={data.groups} onAdd={onAdd} onRename={onRename} /><SetupList icon={MapPin} title="Platser" description="Fasta placeringar och förråd" kind="locations" options={data.locations} onAdd={onAdd} onRename={onRename} /></div>
+    <section className="panel maintenance-panel">
+      <div className="panel-intro"><span className="section-kicker">Löpande administration</span><h2>Skötsel av anslutning och åtkomst</h2><p>Det här behöver bara kontrolleras vid ändrade behörigheter eller anslutningsproblem.</p></div>
+      <ul className="maintenance-list">
+        <li>Kontrollera att synkstatus visar <strong>Ansluten</strong> innan viktiga ändringar görs.</li>
+        <li>Hantera användarnas behörighet till Excel-filen i OneDrive.</li>
+        <li>Använd OneDrives versionshistorik om en felaktig ändring behöver återställas.</li>
+        <li>Flytta inte Excel-filen utan att även uppdatera arbetsbokslänken ovan.</li>
+      </ul>
+    </section>
   </div>
 }
 

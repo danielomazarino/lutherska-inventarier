@@ -123,7 +123,10 @@ tbody tr:hover td { background: #fbfcfa; }
 .panel-intro { padding: 22px; border-bottom: 1px solid var(--line); }
 .panel-intro p, .setup-title p, .modal-header p { margin-top: 3px; color: var(--muted); font-size: 10px; }
 
-.setup-page { display: grid; gap: 22px; }
+.setup-page, .administration-page { display: grid; gap: 22px; }
+.page-intro { padding: 4px 2px 0; }
+.page-intro h2 { margin-top: 4px; font-family: 'Alata', sans-serif; font-size: 24px; font-weight: 500; }
+.page-intro p { margin-top: 5px; color: var(--muted); font-size: 11px; }
 .documentation { max-width: 980px; margin: 0 auto; padding: clamp(24px, 5vw, 58px); color: #40454a; font-size: 13px; line-height: 1.75; animation: appear .25s ease-out; }
 .documentation h1, .documentation h2, .documentation h3 { color: #1f334f; font-family: 'Alata', sans-serif; font-weight: 500; line-height: 1.2; }
 .documentation h1 { margin: 0 0 16px; padding-bottom: 18px; border-bottom: 6px solid #f59b45; font-size: clamp(28px, 4vw, 44px); }
@@ -157,6 +160,9 @@ tbody tr:hover td { background: #fbfcfa; }
 .status-synced { color: #a9d7b5; }
 .status-error, .connection-error { color: #ffc0b9; }
 .connection-error { display: flex; align-items: flex-start; gap: 7px; padding: 9px 11px; background: rgba(199,63,59,.18); font-size: 9px; line-height: 1.4; }
+.maintenance-panel { overflow: hidden; }
+.maintenance-list { display: grid; gap: 12px; margin: 0; padding: 20px 26px 24px 42px; color: #4f5650; font-size: 11px; line-height: 1.55; }
+.maintenance-list li::marker { color: #f59b45; }
 .spin { animation: spin .9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .setup-panel { overflow: hidden; }

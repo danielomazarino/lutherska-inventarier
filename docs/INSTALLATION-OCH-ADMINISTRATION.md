@@ -157,7 +157,7 @@ Om appen fortfarande visar **Sampleläge**, kontrollera först GitHub Actions-va
 
 Gör testen i denna ordning och kontrollera arbetsboken efter varje steg:
 
-1. Lägg till kategorin **Textilier** under **Inställningar**.
+1. Lägg till kategorin **Textilier** under **Administration**.
 2. Lägg till platsen **Sakristian**.
 3. Lägg till ett testföremål med märkningen **TEST-001**.
 4. Öppna arbetsboken i Excel för webben och kontrollera att raden finns i tabellen `Inventory`.
