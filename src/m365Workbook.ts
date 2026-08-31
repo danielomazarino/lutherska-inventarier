@@ -155,8 +155,12 @@ export class M365Workbook {
     return this.addRow('Loans', [loan.id, loan.itemId, loan.borrower, loan.borrowerGroupId, loan.recordedBy, loan.lentAt, loan.dueAt, loan.returnedAt ?? ''])
   }
 
-  returnLoan(loan: Loan) {
+  updateLoan(loan: Loan) {
     return this.updateRow('Loans', loan.id, [loan.id, loan.itemId, loan.borrower, loan.borrowerGroupId, loan.recordedBy, loan.lentAt, loan.dueAt, loan.returnedAt ?? ''])
+  }
+
+  returnLoan(loan: Loan) {
+    return this.updateLoan(loan)
   }
 
   addOption(kind: 'categories' | 'groups' | 'locations', option: Option) {

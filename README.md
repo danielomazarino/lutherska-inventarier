@@ -32,7 +32,8 @@ Det finns ingen attest eller godkännandekedja. En användare med åtkomst kan r
 
 1. Öppna **Utlåning** och välj **Registrera lån**.
 2. Ange föremål, låntagare, grupp, datum och planerad retur.
-3. När föremålet kommer tillbaka väljer du **Markera återlämnad**.
+3. Klicka på en lånerad för att visa eller ändra uppgifterna.
+4. När föremålet kommer tillbaka väljer du **Återlämna**.
 
 ### Ändra listorna
 

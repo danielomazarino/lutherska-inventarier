@@ -112,8 +112,9 @@ function App() {
   const [view, setView] = useState<View>('dashboard')
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
-  const [modal, setModal] = useState<'item' | 'edit-item' | 'loan' | null>(null)
+  const [modal, setModal] = useState<'item' | 'edit-item' | 'loan' | 'edit-loan' | null>(null)
   const [selectedItemId, setSelectedItemId] = useState('')
+  const [selectedLoanId, setSelectedLoanId] = useState('')
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [m365Config, setM365Config] = useState<M365Config>(() => {
     const stored = localStorage.getItem(M365_CONFIG_KEY)
@@ -179,6 +180,7 @@ function App() {
 
   const activeLoans = data.loans.filter((loan) => !loan.returnedAt)
   const today = isoDate()
+  const selectedLoan = data.loans.find((loan) => loan.id === selectedLoanId)
   const overdueLoans = activeLoans.filter((loan) => loan.dueAt < today)
   const loanedItemIds = new Set(activeLoans.map((loan) => loan.itemId))
   const filteredItems = useMemo(() => {
@@ -194,6 +196,7 @@ function App() {
   const optionName = (options: Option[], id: string) => options.find((option) => option.id === id)?.name ?? 'Ej angivet'
   const openItem = (itemId = '') => { setSelectedItemId(itemId); setModal(itemId ? 'edit-item' : 'item') }
   const openLoan = (itemId = '') => { setSelectedItemId(itemId); setModal('loan') }
+  const openLoanDetails = (loanId: string) => { setSelectedLoanId(loanId); setModal('edit-loan') }
 
   const saveRemote = async (operation: (client: M365Workbook) => Promise<unknown>) => {
     if (!workbook) return true
@@ -256,6 +259,22 @@ function App() {
     }
   }
 
+  const updateLoan = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!selectedLoan) return
+    const form = new FormData(event.currentTarget)
+    const loan: Loan = {
+      ...selectedLoan, itemId: String(form.get('itemId')), borrower: String(form.get('borrower')),
+      borrowerGroupId: String(form.get('borrowerGroupId')), recordedBy: String(form.get('recordedBy')),
+      lentAt: String(form.get('lentAt')), dueAt: String(form.get('dueAt')),
+      returnedAt: form.has('returnedAt') ? String(form.get('returnedAt')) : selectedLoan.returnedAt,
+    }
+    if (await saveRemote((client) => client.updateLoan(loan))) {
+      setData((current) => ({ ...current, loans: current.loans.map((entry) => entry.id === loan.id ? loan : entry) }))
+      setModal(null)
+    }
+  }
+
   const returnLoan = async (loanId: string) => {
     const loan = data.loans.find((entry) => entry.id === loanId)
     if (!loan) return
@@ -312,13 +331,14 @@ function App() {
         <div className="content">
           {view === 'dashboard' && <Dashboard data={data} activeLoans={activeLoans} overdueLoans={overdueLoans} optionName={optionName} onNavigate={navigate} onEdit={openItem} onReturn={returnLoan} />}
           {view === 'inventory' && <Inventory data={data} items={filteredItems} search={search} categoryFilter={categoryFilter} loanedItemIds={loanedItemIds} optionName={optionName} onSearch={setSearch} onCategoryFilter={setCategoryFilter} onEdit={openItem} onLoan={openLoan} />}
-          {view === 'loans' && <Loans data={data} optionName={optionName} today={today} onReturn={returnLoan} />}
+          {view === 'loans' && <Loans data={data} optionName={optionName} today={today} onEdit={openLoanDetails} onReturn={returnLoan} />}
           {view === 'setup' && <Setup data={data} m365Config={m365Config} syncStatus={syncStatus} syncError={syncError} connectedUser={connectedUser} onConnect={connectWorkbook} onRefresh={() => refreshWorkbook()} onAdd={addOption} onRename={renameOption} />}
           {view === 'documentation' && <Documentation />}
         </div>
       </main>
       {(modal === 'item' || modal === 'edit-item') && <ItemModal data={data} item={modal === 'edit-item' ? data.items.find((entry) => entry.id === selectedItemId) : undefined} onClose={() => setModal(null)} onSubmit={modal === 'edit-item' ? updateItem : addItem} />}
       {modal === 'loan' && <LoanModal data={data} availableItems={data.items.filter((item) => !loanedItemIds.has(item.id))} selectedItemId={selectedItemId} onClose={() => setModal(null)} onSubmit={addLoan} />}
+      {modal === 'edit-loan' && <LoanModal data={data} availableItems={data.items.filter((item) => Boolean(selectedLoan?.returnedAt) || item.id === selectedLoan?.itemId || !loanedItemIds.has(item.id))} loan={selectedLoan} onClose={() => setModal(null)} onSubmit={updateLoan} />}
     </div>
   )
 }
@@ -378,12 +398,12 @@ function Inventory({ data, items, search, categoryFilter, loanedItemIds, optionN
   </section>
 }
 
-function Loans({ data, optionName, today, onReturn }: SharedProps & { today: string; onReturn: (loanId: string) => void }) {
+function Loans({ data, optionName, today, onEdit, onReturn }: SharedProps & { today: string; onEdit: (loanId: string) => void; onReturn: (loanId: string) => void }) {
   const sorted = [...data.loans].sort((a, b) => Number(Boolean(a.returnedAt)) - Number(Boolean(b.returnedAt)))
   return <section className="panel table-panel"><div className="panel-intro"><div><span className="section-kicker">Rörelselogg</span><h2>Alla lån och återlämningar</h2><p>Historik över vem som lånade och vem som registrerade händelsen.</p></div></div><div className="table-wrap"><table><thead><tr><th>Föremål</th><th>Låntagare</th><th>Registrerat av</th><th>Utlånat</th><th>Planerad retur</th><th>Status</th><th><span className="sr-only">Åtgärder</span></th></tr></thead><tbody>{sorted.map((loan) => {
     const item = data.items.find((entry) => entry.id === loan.itemId)
     const overdue = !loan.returnedAt && loan.dueAt < today
-    return <tr className={overdue ? 'overdue-table-row' : ''} key={loan.id}><td><div className="item-cell"><div className="item-symbol"><ClipboardList size={19} /></div><div><strong>{item?.name}</strong><span>{item?.assetTag}</span></div></div></td><td><strong className="table-strong">{loan.borrower}</strong><small>{optionName(data.groups, loan.borrowerGroupId)}</small></td><td>{loan.recordedBy}</td><td>{formatDate(loan.lentAt)}</td><td>{formatDate(loan.dueAt)}</td><td><span className={`status ${loan.returnedAt ? 'status-returned' : overdue ? 'status-overdue' : 'status-loan'}`}>{loan.returnedAt ? `Åter ${formatDate(loan.returnedAt)}` : overdue ? 'Försenad' : 'Utlånad'}</span></td><td>{!loan.returnedAt && <button className="icon-text-button" onClick={() => onReturn(loan.id)}><RotateCcw size={16} /> Återlämna</button>}</td></tr>
+    return <tr className={`loan-table-row${overdue ? ' overdue-table-row' : ''}`} tabIndex={0} aria-label={`Visa och redigera lån för ${item?.name}`} key={loan.id} onClick={() => onEdit(loan.id)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onEdit(loan.id) } }}><td><div className="item-cell"><div className="item-symbol"><ClipboardList size={19} /></div><div><strong>{item?.name}</strong><span>{item?.assetTag}</span></div></div></td><td><div className="borrower-cell"><strong>{loan.borrower}</strong><span>{optionName(data.groups, loan.borrowerGroupId)}</span></div></td><td><span className="recorded-by">{loan.recordedBy}</span></td><td>{formatDate(loan.lentAt)}</td><td>{formatDate(loan.dueAt)}</td><td><span className={`status ${loan.returnedAt ? 'status-returned' : overdue ? 'status-overdue' : 'status-loan'}`}>{loan.returnedAt ? `Åter ${formatDate(loan.returnedAt)}` : overdue ? 'Försenad' : 'Utlånad'}</span></td><td>{!loan.returnedAt && <button className="icon-text-button" onClick={(event) => { event.stopPropagation(); onReturn(loan.id) }}><RotateCcw size={16} /> Återlämna</button>}</td></tr>
   })}</tbody></table></div></section>
 }
 
@@ -439,8 +459,9 @@ function ItemModal({ data, item, onClose, onSubmit }: { data: InventoryData; ite
   return <Modal title={item ? 'Visa och redigera föremål' : 'Lägg till föremål'} subtitle={item ? 'Kontrollera eller ändra föremålets uppgifter.' : 'Registrera var föremålet hör hemma och vem som ansvarar.'} onClose={onClose}><form className="form-grid" onSubmit={onSubmit}><label className="full">Namn<input name="name" required autoFocus defaultValue={item?.name} placeholder="t.ex. Portabel projektor" /></label><label>Märkning<input name="assetTag" required defaultValue={item?.assetTag} placeholder="t.ex. AV-012" /></label><label>Antal<input name="quantity" required type="number" min="1" defaultValue={item?.quantity ?? 1} /></label><label>Kategori<select name="categoryId" required defaultValue={item?.categoryId}>{data.categories.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label><label>Ansvarig grupp<select name="primaryGroupId" required defaultValue={item?.primaryGroupId}>{data.groups.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label><label className="full">Sekundära grupper<select name="secondaryGroupIds" multiple size={Math.min(data.groups.length, 4)} defaultValue={item?.secondaryGroupIds}>{data.groups.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select><small>Håll Ctrl för att välja flera.</small></label><label className="full">Ordinarie plats<select name="locationId" required defaultValue={item?.locationId}>{data.locations.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label><label className="full">Anteckningar<textarea name="notes" rows={3} defaultValue={item?.notes} placeholder="Skick, tillbehör eller andra användbara uppgifter" /></label><div className="form-actions full"><button type="button" className="button secondary" onClick={onClose}>Avbryt</button><button className="button primary">{item ? <Check size={17} /> : <PackagePlus size={17} />} {item ? 'Spara ändringar' : 'Lägg till föremål'}</button></div></form></Modal>
 }
 
-function LoanModal({ data, availableItems, selectedItemId, onClose, onSubmit }: { data: InventoryData; availableItems: Item[]; selectedItemId: string; onClose: () => void; onSubmit: (event: FormEvent<HTMLFormElement>) => void }) {
-  return <Modal title="Registrera lån" subtitle="Inget godkännande behövs. Registrera låntagare och planerad retur." onClose={onClose}><form className="form-grid" onSubmit={onSubmit}><label className="full">Föremål<select name="itemId" required defaultValue={selectedItemId}>{!selectedItemId && <option value="">Välj ett tillgängligt föremål</option>}{availableItems.map((item) => <option key={item.id} value={item.id}>{item.assetTag} · {item.name}</option>)}</select></label><label>Låntagare<input name="borrower" required autoFocus placeholder="För- och efternamn" /></label><label>Låntagarens grupp<select name="borrowerGroupId" required>{data.groups.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label><label>Utlånad den<input name="lentAt" type="date" required defaultValue={isoDate()} /></label><label>Planerad retur<input name="dueAt" type="date" required min={isoDate()} defaultValue={isoDate(7)} /></label><label className="full">Registrerat av<input name="recordedBy" required placeholder="Ditt namn" /></label><div className="form-actions full"><button type="button" className="button secondary" onClick={onClose}>Avbryt</button><button className="button primary"><Check size={17} /> Registrera lån</button></div></form></Modal>
+function LoanModal({ data, availableItems, selectedItemId = '', loan, onClose, onSubmit }: { data: InventoryData; availableItems: Item[]; selectedItemId?: string; loan?: Loan; onClose: () => void; onSubmit: (event: FormEvent<HTMLFormElement>) => void }) {
+  const itemId = loan?.itemId ?? selectedItemId
+  return <Modal title={loan ? 'Visa och redigera lån' : 'Registrera lån'} subtitle={loan ? 'Kontrollera eller ändra uppgifterna för lånet.' : 'Inget godkännande behövs. Registrera låntagare och planerad retur.'} onClose={onClose}><form className="form-grid" onSubmit={onSubmit}><label className="full">Föremål<select name="itemId" required defaultValue={itemId}>{!itemId && <option value="">Välj ett tillgängligt föremål</option>}{availableItems.map((item) => <option key={item.id} value={item.id}>{item.assetTag} · {item.name}</option>)}</select></label><label>Låntagare<input name="borrower" required autoFocus defaultValue={loan?.borrower} placeholder="För- och efternamn" /></label><label>Låntagarens grupp<select name="borrowerGroupId" required defaultValue={loan?.borrowerGroupId}>{data.groups.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label><label>Utlånad den<input name="lentAt" type="date" required defaultValue={loan?.lentAt ?? isoDate()} /></label><label>Planerad retur<input name="dueAt" type="date" required min={loan ? undefined : isoDate()} defaultValue={loan?.dueAt ?? isoDate(7)} /></label>{loan?.returnedAt && <label>Återlämnad den<input name="returnedAt" type="date" required defaultValue={loan.returnedAt} /></label>}<label className={loan?.returnedAt ? '' : 'full'}>Registrerat av<input name="recordedBy" required defaultValue={loan?.recordedBy} placeholder="Ditt namn" /></label><div className="form-actions full"><button type="button" className="button secondary" onClick={onClose}>Avbryt</button><button className="button primary"><Check size={17} /> {loan ? 'Spara ändringar' : 'Registrera lån'}</button></div></form></Modal>
 }
 
 function formatDate(value: string) {
