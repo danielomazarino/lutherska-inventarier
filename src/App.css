@@ -224,9 +224,9 @@ tbody tr:hover td { background: #fbfcfa; }
   .sidebar { transform: translateX(-100%); transition: transform .22s ease-out; box-shadow: 14px 0 30px rgba(16,30,21,.2); }
   .sidebar.sidebar-open { transform: translateX(0); }
   .nav-backdrop { position: fixed; inset: 0; z-index: 15; display: block; padding: 0; border: 0; background: rgba(20,31,25,.4); }
-  main { width: 100%; }
+  main { width: 100%; padding-top: 80px; }
   .mobile-menu { display: grid; }
-  .topbar { position: sticky; top: 0; z-index: 10; min-height: 80px; padding: 14px 18px; }
+  .topbar { position: fixed; inset: 0 0 auto; z-index: 10; min-height: 80px; padding: 14px 18px; }
   .topbar h1 { font-size: 26px; }
   .header-actions .secondary { display: none; }
   .header-actions .button.primary { width: 40px; min-width: 40px; padding: 0; font-size: 0; }
