@@ -62,6 +62,8 @@ const seedData: InventoryData = {
     { id: 'cat-furniture', name: 'Möbler', color: '#6f8657', prefix: 'MOB' },
     { id: 'cat-lighting', name: 'Belysning', color: '#f59b45', prefix: 'BEL' },
     { id: 'cat-sound', name: 'Ljudutrustning', color: '#3688df', prefix: 'LJU' },
+    { id: 'cat-light-equipment', name: 'Ljusutrustning', color: '#277da1', prefix: 'LJS' },
+    { id: 'cat-music-ministry', name: 'Musikverksamhet', color: '#8f5d5d', prefix: 'MUS' },
     { id: 'cat-kitchen', name: 'Kök & fika', color: '#c73f3b', prefix: 'KOK' },
   ],
   groups: [
@@ -91,15 +93,18 @@ const seedData: InventoryData = {
   ],
   locations: [
     { id: 'loc-sanctuary', name: 'Kyrksalen' },
-    { id: 'loc-stage', name: 'Scenförrådet' },
     { id: 'loc-kitchen', name: 'Köksförrådet' },
-    { id: 'loc-basement', name: 'Källarförrådet' },
+    { id: 'loc-lanterninen', name: 'Lanterninen' },
+    { id: 'loc-small-sanctuary-storage', name: 'Lilla förrådet i kyrksalen' },
+    { id: 'loc-stair-storage', name: 'Trappförrådet' },
+    { id: 'loc-gallery', name: 'Läktaren' },
+    { id: 'loc-penty-kyrktorget', name: 'Penty kyrktorget' },
   ],
   items: [
-    { id: 'item-1', assetTag: 'LJU-001', name: 'Trådlösa mikrofoner', categoryId: 'cat-sound', primaryGroupId: 'grp-sound', secondaryGroupIds: ['grp-lux'], locationId: 'loc-stage', quantity: 2, notes: 'Två handmikrofoner och mottagare.' },
-    { id: 'item-2', assetTag: 'MOB-014', name: 'Fällbord', categoryId: 'cat-furniture', primaryGroupId: 'grp-premises-change', secondaryGroupIds: ['grp-household'], locationId: 'loc-basement', quantity: 8, notes: '' },
+    { id: 'item-1', assetTag: 'LJU-001', name: 'Trådlösa mikrofoner', categoryId: 'cat-sound', primaryGroupId: 'grp-sound', secondaryGroupIds: ['grp-lux'], locationId: 'loc-small-sanctuary-storage', quantity: 2, notes: 'Två handmikrofoner och mottagare.' },
+    { id: 'item-2', assetTag: 'MOB-014', name: 'Fällbord', categoryId: 'cat-furniture', primaryGroupId: 'grp-premises-change', secondaryGroupIds: ['grp-household'], locationId: 'loc-stair-storage', quantity: 8, notes: '' },
     { id: 'item-3', assetTag: 'KOK-008', name: 'Stor kaffebryggare', categoryId: 'cat-kitchen', primaryGroupId: 'grp-household', secondaryGroupIds: ['grp-kitchen-cleaning-purchases'], locationId: 'loc-kitchen', quantity: 1, notes: 'Rymmer 10 liter.' },
-    { id: 'item-4', assetTag: 'BEL-004', name: 'Portabla LED-lampor', categoryId: 'cat-lighting', primaryGroupId: 'grp-service-visuals', secondaryGroupIds: ['grp-lux'], locationId: 'loc-stage', quantity: 6, notes: 'Förvaras i vadderad transportväska.' },
+    { id: 'item-4', assetTag: 'BEL-004', name: 'Portabla LED-lampor', categoryId: 'cat-lighting', primaryGroupId: 'grp-service-visuals', secondaryGroupIds: ['grp-lux'], locationId: 'loc-small-sanctuary-storage', quantity: 6, notes: 'Förvaras i vadderad transportväska.' },
   ],
   loans: [
     { id: 'loan-1', itemId: 'item-4', borrower: 'Anna Lind', borrowerGroupId: 'grp-lux', recordedBy: 'Erik Nilsson', lentAt: isoDate(-6), dueAt: isoDate(-1) },
