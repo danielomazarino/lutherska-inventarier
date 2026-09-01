@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Boxes,
   BookOpen,
@@ -138,6 +138,7 @@ function App() {
   const [selectedLoanId, setSelectedLoanId] = useState('')
   const [formError, setFormError] = useState('')
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const edgeSwipeStart = useRef<{ x: number; y: number }>()
   const [m365Config, setM365Config] = useState<M365Config>(() => {
     const stored = localStorage.getItem(M365_CONFIG_KEY)
     return stored ? JSON.parse(stored) as M365Config : deployedM365Config
@@ -391,9 +392,24 @@ function App() {
     { id: 'setup', label: 'Inställningar', icon: Settings },
   ]
   const navigate = (nextView: View) => { setView(nextView); setMobileNavOpen(false) }
+  const startEdgeSwipe = (event: React.TouchEvent<HTMLDivElement>) => {
+    const touch = event.touches[0]
+    if (!touch || mobileNavOpen || window.innerWidth > 900 || touch.clientX > 32) return
+    edgeSwipeStart.current = { x: touch.clientX, y: touch.clientY }
+  }
+  const finishEdgeSwipe = (event: React.TouchEvent<HTMLDivElement>) => {
+    const start = edgeSwipeStart.current
+    edgeSwipeStart.current = undefined
+    const touch = event.changedTouches[0]
+    if (!start || !touch) return
+
+    const horizontalDistance = touch.clientX - start.x
+    const verticalDistance = Math.abs(touch.clientY - start.y)
+    if (horizontalDistance >= 72 && verticalDistance <= 48) setMobileNavOpen(true)
+  }
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" onTouchStart={startEdgeSwipe} onTouchEnd={finishEdgeSwipe} onTouchCancel={() => { edgeSwipeStart.current = undefined }}>
       <aside className={`sidebar ${mobileNavOpen ? 'sidebar-open' : ''}`}>
         <div className="brand"><img src="https://lutherska.nu/wp-content/uploads/2025/08/logo_Lutherska_vit.png" alt="Lutherska Missionskyrkan" /><span>Inventarieregister</span></div>
         <nav aria-label="Main navigation">
