@@ -6,6 +6,23 @@
     <meta name="theme-color" content="#1f334f" />
     <meta name="description" content="Lutherska Missionskyrkans inventarieregister" />
     <title>Inventarier | Lutherska Missionskyrkan</title>
+    <script>
+      (() => {
+        const buildId = '%VITE_BUILD_ID%'
+        if (!buildId || buildId.startsWith('%')) return
+
+        const url = new URL(location.href)
+        if (url.searchParams.get('v') !== buildId) {
+          url.searchParams.set('v', buildId)
+          location.replace(url.href)
+          return
+        }
+
+        addEventListener('pageshow', (event) => {
+          if (event.persisted) location.reload()
+        })
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

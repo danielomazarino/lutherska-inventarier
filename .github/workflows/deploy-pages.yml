@@ -30,6 +30,7 @@ jobs:
       - run: npm ci
       - run: npm run build
         env:
+          VITE_BUILD_ID: ${{ github.sha }}
           VITE_M365_TENANT_ID: ${{ vars.M365_TENANT_ID }}
           VITE_M365_CLIENT_ID: ${{ vars.M365_CLIENT_ID }}
           VITE_M365_WORKBOOK_URL: ${{ vars.M365_WORKBOOK_URL }}
