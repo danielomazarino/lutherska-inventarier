@@ -148,6 +148,19 @@ function App() {
   const [connectedUser, setConnectedUser] = useState('')
 
   useEffect(() => {
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
+
+    const resetMobileScroll = () => {
+      if (!window.matchMedia('(max-width: 900px)').matches) return
+      window.requestAnimationFrame(() => window.requestAnimationFrame(() => window.scrollTo(0, 0)))
+    }
+
+    resetMobileScroll()
+    window.addEventListener('pageshow', resetMobileScroll)
+    return () => window.removeEventListener('pageshow', resetMobileScroll)
+  }, [])
+
+  useEffect(() => {
     if (!workbook) localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
   }, [data, workbook])
 
