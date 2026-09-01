@@ -226,7 +226,7 @@ tbody tr:hover td { background: #fbfcfa; }
   .nav-backdrop { position: fixed; inset: 0; z-index: 15; display: block; padding: 0; border: 0; background: rgba(20,31,25,.4); }
   main { width: 100%; }
   .mobile-menu { display: grid; }
-  .topbar { min-height: 80px; padding: 14px 18px; }
+  .topbar { position: sticky; top: 0; z-index: 10; min-height: 80px; padding: 14px 18px; }
   .topbar h1 { font-size: 26px; }
   .header-actions .secondary { display: none; }
   .header-actions .button.primary { width: 40px; min-width: 40px; padding: 0; font-size: 0; }
