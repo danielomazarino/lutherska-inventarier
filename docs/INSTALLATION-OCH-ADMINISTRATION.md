@@ -15,6 +15,26 @@ Guiden antar att GitHub-projektet heter `lutherska-inventarier`. Då blir webbad
 
 Om ett annat projektnamn används måste samma namn bytas i alla webbadresser nedan.
 
+## Aktuell status och rekommenderad webbadress
+
+Detta kontrollerades den 1 september 2026:
+
+- Den publicerade appen finns på `https://danielomazarino.github.io/lutherska-inventarier/` och uppdateras automatiskt från GitHub-projektets huvudgren.
+- Kyrkans webbplats `https://lutherska.nu/` använder WordPress. Publik DNS och webbserver hanteras av Simply.com; domänen pekar för närvarande på `185.20.205.27`.
+- Kyrkans OneDrive- och Microsoft Entra-miljö har ännu inte kunnat kontrolleras, eftersom kyrkkontots inloggning saknas. Inga ändringar har gjorts i kyrkans Microsoft 365, WordPress eller Simply.com.
+
+Den rekommenderade permanenta adressen är `https://inventarier.lutherska.nu/`. Den behåller den nuvarande, automatiska GitHub Pages-publiceringen och låter WordPress-webbplatsen vara oförändrad. Appen använder relativa byggsökvägar och räknar ut sin Microsoft-inloggningsadress från den öppna webbplatsen, så en sådan underdomän kräver ingen ändring av appkoden.
+
+När en person har åtkomst till Simply.com och GitHub Pages görs följande:
+
+1. Skapa DNS-posten `inventarier` som en `CNAME` till `danielomazarino.github.io` i Simply.com.
+2. Öppna GitHub-repositoryts **Settings > Pages > Custom domain** och ange `inventarier.lutherska.nu`.
+3. Vänta tills GitHub har verifierat DNS-posten och aktivera **Enforce HTTPS**.
+4. När appregistreringen finns i Entra, lägg till exakt `https://inventarier.lutherska.nu/` som ytterligare SPA redirect URI. Behåll GitHub Pages-adressen under testperioden.
+5. Prova Microsoft-inloggning med ett kyrkkonto innan den nya adressen delas bredare.
+
+Att lägga appen under `https://lutherska.nu/inventarier/` är också möjligt, men kräver åtkomst till WordPress eller webbhotellets filer, publicering av den färdiga `dist`-mappen och extra kontroll av sökvägar. Underdomänen är därför den enklare vägen.
+
 ## Vad du kan göra innan du får kyrkkontot
 
 1. Skapa ett **publikt** repository på ditt privata GitHub-konto med namnet `lutherska-inventarier`.
@@ -49,6 +69,8 @@ Det viktiga är inte paketnamnet. Följande funktioner måste finnas:
 Microsoft Entra ID Free följer med Microsoft 365. Appregistreringen och normal användning av Microsoft Graph har ingen separat avgift för detta användningsfall. En betald Azure-prenumeration behövs inte.
 
 Om du inte kan öppna **App registrations** i Entra kan vanliga användares rätt att registrera appar vara avstängd. Då behövs en person med rollen **Application Administrator**, **Cloud Application Administrator** eller **Global Administrator** för engångssteget i avsnitt 4.
+
+Om OneDrive går att öppna men Entra saknas från applistan, prova ändå `https://entra.microsoft.com/`. Ett meddelande om otillräcklig behörighet betyder inte att Microsoft 365-paketet är fel; det betyder normalt att en av rollerna ovan behöver hjälpa till med appregistreringen.
 
 ## Steg 2: lägg arbetsboken i kyrkans OneDrive
 
